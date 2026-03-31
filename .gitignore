@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+out/
+dist/
+
+# Environment secrets - NEVER commit
+.env
+.env.local
+.env.*.local
+
+# Firebase
+.firebase/
+.firebaserc.local
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# OS & Editor
+.DS_Store
+*.pem
+.vscode/
+.idea/
+
+# Testing
+coverage/
+playwright-report/
+test-results/

@@ -1,0 +1,21 @@
+{
+  "name": "@signalboard/llm",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "lint": "eslint \"src/**/*.ts*\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^1.1.9",
+    "ai": "^4.1.25",
+    "zod": "^3.23.8",
+    "@signalboard/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2",
+    "@types/node": "^22.5.4"
+  }
+}

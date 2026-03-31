@@ -1,0 +1,16 @@
+{
+  "name": "signalboard-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.9"
+  }
+}

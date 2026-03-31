@@ -1,0 +1,13 @@
+{
+  "name": "@signalboard/test-harness",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "vitest": "^2.1.1",
+    "@signalboard/domain": "workspace:*",
+    "@signalboard/llm": "workspace:*"
+  }
+}
