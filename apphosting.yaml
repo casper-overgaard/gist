@@ -5,3 +5,9 @@ runConfig:
   minInstances: 0
   maxInstances: 10
 
+env:
+  - variable: OPENROUTER_API_KEY
+    secret: OPENROUTER_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
