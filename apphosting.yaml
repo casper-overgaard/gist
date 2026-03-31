@@ -1,0 +1,13 @@
+runConfig:
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+  minInstances: 0
+  maxInstances: 10
+
+env:
+  - variable: OPENROUTER_API_KEY
+    secret: OPENROUTER_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
