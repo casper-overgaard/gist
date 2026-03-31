@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Asset, Session } from "@signalboard/domain";
+import { Asset, Session, ClarificationQuestion, ClarificationAnswer } from "@signalboard/domain";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -13,6 +13,8 @@ import {
 interface SessionState {
   session: Session | null;
   assets: Asset[];
+  questions: ClarificationQuestion[];
+  isSynthesizing: boolean;
   isLoading: boolean;
   error: string | null;
 
@@ -22,11 +24,17 @@ interface SessionState {
   updateAssetText: (assetId: string, text: string) => Promise<void>;
   updateAssetPosition: (assetId: string, x: number, y: number, saveToDb?: boolean) => Promise<void>;
   removeAsset: (assetId: string) => Promise<void>;
+  writeSynthesis: (sessionId: string, synthesis: any) => Promise<void>;
+  writeQuestions: (sessionId: string, questions: ClarificationQuestion[]) => Promise<void>;
+  answerQuestion: (sessionId: string, answer: ClarificationAnswer) => Promise<void>;
+  setIsSynthesizing: (v: boolean) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
   session: null,
   assets: [],
+  questions: [],
+  isSynthesizing: false,
   isLoading: true,
   error: null,
 
@@ -61,10 +69,23 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       (error) => set({ error: error.message })
     );
 
+    // 3. Subscribe to Clarification Questions
+    const questionsRef = collection(db, `sessions/${sessionId}/questions`);
+    const unsubQuestions = onSnapshot(
+      questionsRef,
+      (snapshot) => {
+        const questions: ClarificationQuestion[] = [];
+        snapshot.forEach((doc) => questions.push(doc.data() as ClarificationQuestion));
+        set({ questions: questions.sort((a, b) => a.priority - b.priority) });
+      },
+      (error) => set({ error: error.message })
+    );
+
     // Return combined unsubscription function
     return () => {
       unsubSession();
       unsubAssets();
+      unsubQuestions();
     };
   },
 
@@ -135,4 +156,32 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     const assetRef = doc(db, `sessions/${session.id}/assets`, assetId);
     await deleteDoc(assetRef);
   },
+
+  writeSynthesis: async (sessionId: string, synthesis: any) => {
+    const synthRef = doc(db, `sessions/${sessionId}/synthesis`, "latest");
+    await setDoc(synthRef, { ...synthesis, sessionId, createdAt: new Date().toISOString() });
+  },
+
+  writeQuestions: async (sessionId: string, questions: ClarificationQuestion[]) => {
+    for (const q of questions) {
+      const qRef = doc(db, `sessions/${sessionId}/questions`, q.id);
+      await setDoc(qRef, q);
+    }
+  },
+
+  answerQuestion: async (sessionId: string, answer: ClarificationAnswer) => {
+    const answerRef = doc(db, `sessions/${sessionId}/answers`, answer.questionId);
+    await setDoc(answerRef, answer);
+    // Mark question as answered
+    const qRef = doc(db, `sessions/${sessionId}/questions`, answer.questionId);
+    await updateDoc(qRef, { status: "answered" });
+    // Optimistic UI
+    set((state) => ({
+      questions: state.questions.map((q) =>
+        q.id === answer.questionId ? { ...q, status: "answered" } : q
+      )
+    }));
+  },
+
+  setIsSynthesizing: (v: boolean) => set({ isSynthesizing: v }),
 }));
