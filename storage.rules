@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Wave 1-2: Allow read/write to session asset uploads.
+    // Wave 3 (auth): Restrict to authenticated users.
+    match /sessions/{sessionId}/{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}
