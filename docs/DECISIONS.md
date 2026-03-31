@@ -28,6 +28,14 @@ Template:
 - Follow-up required: Require user to execute `firebase login` to authenticate the CLI locally before initiating deployment pipelines.
 
 - Date: 2026-03-31
+- Decision: Add `apphosting.yaml` and `output: 'standalone'` for Firebase App Hosting / Cloud Run.
+- Context: First App Hosting deployment failed with "container failed to start and listen on PORT=8080". Root cause: pnpm workspace symlinks for `@signalboard/llm` and `@signalboard/domain` do not survive in the Cloud Run image without standalone bundling. Additionally, Firebase App Hosting requires `apphosting.yaml` at the repo root for build/runtime configuration.
+- Alternatives considered: Dockerfile with explicit pnpm install steps; moving workspace packages into apps/web.
+- Why chosen: `output: 'standalone'` is the canonical Next.js solution for container deployments — it bundles all required files into `.next/standalone/` so `node server.js` works without workspace resolution. `apphosting.yaml` is required by the platform regardless.
+- Spec impact: None. Deployment plumbing only.
+- Follow-up required: Provision `OPENROUTER_API_KEY` in GCP Secret Manager (project gist-6062f) and re-add to `apphosting.yaml` env block. `NEXT_PUBLIC_FIREBASE_*` variables must be set in Firebase App Hosting environment config (not in apphosting.yaml, as they are baked at build time).
+
+- Date: 2026-03-31
 - Decision: Revert Next.js `output: 'export'` in favor of Server Actions for `OPENROUTER_API_KEY` protection.
 - Context: Initiating Wave 2 LLM inferences required API interactions with OpenRouter. Executing LLM fetching explicitly requires backend capabilities to hide operational secrets.
 - Alternatives considered: Firebase Cloud Functions (`packages/functions`), pure static GUI prompting user for their API Key natively. 

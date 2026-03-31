@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import { Asset, Session, ClarificationQuestion, ClarificationAnswer } from "@signalboard/domain";
+import {
+  Asset,
+  Session,
+  SessionSynthesis,
+  ClarificationQuestion,
+  ClarificationAnswer,
+  OutputDocument,
+} from "@signalboard/domain";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -7,14 +14,18 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
-  onSnapshot
+  onSnapshot,
 } from "firebase/firestore";
 
 interface SessionState {
   session: Session | null;
   assets: Asset[];
+  synthesis: SessionSynthesis | null;
   questions: ClarificationQuestion[];
+  answers: ClarificationAnswer[];
+  outputs: OutputDocument[];
   isSynthesizing: boolean;
+  isGeneratingOutput: boolean;
   isLoading: boolean;
   error: string | null;
 
@@ -24,24 +35,30 @@ interface SessionState {
   updateAssetText: (assetId: string, text: string) => Promise<void>;
   updateAssetPosition: (assetId: string, x: number, y: number, saveToDb?: boolean) => Promise<void>;
   removeAsset: (assetId: string) => Promise<void>;
+  setOutputType: (sessionId: string, outputType: Session["selectedOutputType"]) => Promise<void>;
   writeSynthesis: (sessionId: string, synthesis: any) => Promise<void>;
   writeQuestions: (sessionId: string, questions: ClarificationQuestion[]) => Promise<void>;
   answerQuestion: (sessionId: string, answer: ClarificationAnswer) => Promise<void>;
+  writeOutput: (sessionId: string, output: OutputDocument) => Promise<void>;
   setIsSynthesizing: (v: boolean) => void;
+  setIsGeneratingOutput: (v: boolean) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
   session: null,
   assets: [],
+  synthesis: null,
   questions: [],
+  answers: [],
+  outputs: [],
   isSynthesizing: false,
+  isGeneratingOutput: false,
   isLoading: true,
   error: null,
 
   initializeSession: (sessionId: string) => {
     set({ isLoading: true, error: null });
 
-    // 1. Subscribe to Session
     const sessionRef = doc(db, "sessions", sessionId);
     const unsubSession = onSnapshot(
       sessionRef,
@@ -55,21 +72,28 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       (error) => set({ error: error.message, isLoading: false })
     );
 
-    // 2. Subscribe to Assets
     const assetsRef = collection(db, `sessions/${sessionId}/assets`);
     const unsubAssets = onSnapshot(
       assetsRef,
       (snapshot) => {
         const assets: Asset[] = [];
-        snapshot.forEach((doc) => {
-          assets.push(doc.data() as Asset);
-        });
+        snapshot.forEach((doc) => assets.push(doc.data() as Asset));
         set({ assets });
       },
       (error) => set({ error: error.message })
     );
 
-    // 3. Subscribe to Clarification Questions
+    const synthRef = doc(db, `sessions/${sessionId}/synthesis`, "latest");
+    const unsubSynthesis = onSnapshot(
+      synthRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          set({ synthesis: snapshot.data() as SessionSynthesis });
+        }
+      },
+      (error) => console.error("Synthesis subscription error:", error)
+    );
+
     const questionsRef = collection(db, `sessions/${sessionId}/questions`);
     const unsubQuestions = onSnapshot(
       questionsRef,
@@ -81,11 +105,35 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       (error) => set({ error: error.message })
     );
 
-    // Return combined unsubscription function
+    const answersRef = collection(db, `sessions/${sessionId}/answers`);
+    const unsubAnswers = onSnapshot(
+      answersRef,
+      (snapshot) => {
+        const answers: ClarificationAnswer[] = [];
+        snapshot.forEach((doc) => answers.push(doc.data() as ClarificationAnswer));
+        set({ answers });
+      },
+      (error) => console.error("Answers subscription error:", error)
+    );
+
+    const outputsRef = collection(db, `sessions/${sessionId}/outputs`);
+    const unsubOutputs = onSnapshot(
+      outputsRef,
+      (snapshot) => {
+        const outputs: OutputDocument[] = [];
+        snapshot.forEach((doc) => outputs.push(doc.data() as OutputDocument));
+        set({ outputs: outputs.sort((a, b) => b.version - a.version) });
+      },
+      (error) => console.error("Outputs subscription error:", error)
+    );
+
     return () => {
       unsubSession();
       unsubAssets();
+      unsubSynthesis();
       unsubQuestions();
+      unsubAnswers();
+      unsubOutputs();
     };
   },
 
@@ -101,7 +149,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       selectedOutputType: "UI/Product Style Direction",
       latestOutputId: null,
     };
-
     const sessionRef = doc(db, "sessions", newSessionId);
     await setDoc(sessionRef, newSession);
     return newSessionId;
@@ -110,7 +157,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   addAsset: async (asset: Asset) => {
     const { session } = get();
     if (!session) throw new Error("No active session");
-
     const assetRef = doc(db, `sessions/${session.id}/assets`, asset.id);
     await setDoc(assetRef, asset);
   },
@@ -118,14 +164,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   updateAssetText: async (assetId: string, text: string) => {
     const { session, assets } = get();
     if (!session) return;
-
-    // Optimistic UI update
-    set({
-      assets: assets.map((a) =>
-        a.id === assetId ? { ...a, rawText: text } : a
-      ),
-    });
-
+    set({ assets: assets.map((a) => (a.id === assetId ? { ...a, rawText: text } : a)) });
     const assetRef = doc(db, `sessions/${session.id}/assets`, assetId);
     await updateDoc(assetRef, { rawText: text });
   },
@@ -133,18 +172,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   updateAssetPosition: async (assetId: string, x: number, y: number, saveToDb: boolean = true) => {
     const { session, assets } = get();
     if (!session) return;
-
-    // Optimistic UI update for immediate 60fps React Flow drags
-    set({
-      assets: assets.map((a) =>
-        a.id === assetId ? { ...a, canvasPosition: { x, y } } : a
-      ),
-    });
-
+    set({ assets: assets.map((a) => (a.id === assetId ? { ...a, canvasPosition: { x, y } } : a)) });
     if (saveToDb) {
       const assetRef = doc(db, `sessions/${session.id}/assets`, assetId);
       await updateDoc(assetRef, { canvasPosition: { x, y } }).catch((err) => {
-         console.error("Failed to persist node location", err);
+        console.error("Failed to persist node location", err);
       });
     }
   },
@@ -152,9 +184,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   removeAsset: async (assetId: string) => {
     const { session } = get();
     if (!session) return;
-
     const assetRef = doc(db, `sessions/${session.id}/assets`, assetId);
     await deleteDoc(assetRef);
+  },
+
+  setOutputType: async (sessionId: string, outputType: Session["selectedOutputType"]) => {
+    const sessionRef = doc(db, "sessions", sessionId);
+    await updateDoc(sessionRef, { selectedOutputType: outputType, updatedAt: new Date().toISOString() });
   },
 
   writeSynthesis: async (sessionId: string, synthesis: any) => {
@@ -172,16 +208,25 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   answerQuestion: async (sessionId: string, answer: ClarificationAnswer) => {
     const answerRef = doc(db, `sessions/${sessionId}/answers`, answer.questionId);
     await setDoc(answerRef, answer);
-    // Mark question as answered
     const qRef = doc(db, `sessions/${sessionId}/questions`, answer.questionId);
     await updateDoc(qRef, { status: "answered" });
-    // Optimistic UI
     set((state) => ({
       questions: state.questions.map((q) =>
         q.id === answer.questionId ? { ...q, status: "answered" } : q
-      )
+      ),
     }));
   },
 
+  writeOutput: async (sessionId: string, output: OutputDocument) => {
+    const outputRef = doc(db, `sessions/${sessionId}/outputs`, output.id);
+    await setDoc(outputRef, output);
+    const sessionRef = doc(db, "sessions", sessionId);
+    await updateDoc(sessionRef, {
+      latestOutputId: output.id,
+      updatedAt: new Date().toISOString(),
+    });
+  },
+
   setIsSynthesizing: (v: boolean) => set({ isSynthesizing: v }),
+  setIsGeneratingOutput: (v: boolean) => set({ isGeneratingOutput: v }),
 }));
