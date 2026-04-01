@@ -16,6 +16,7 @@ dist/
 # Firebase
 .firebase/
 .firebaserc.local
+firebase-debug.log
 
 # TypeScript incremental build info
 *.tsbuildinfo
