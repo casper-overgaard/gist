@@ -7,7 +7,9 @@
     "pnpm": ">=8"
   },
   "scripts": {
-    "dev": "pnpm --filter web dev"
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "node apps/web/.next/standalone/server.js"
   },
   "devDependencies": {
     "typescript": "^5.4.5",
