@@ -54,7 +54,8 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
         version: outputs.length + 1,
       });
 
-      if (!result.success || !result.data) throw new Error(result.error);
+      if (!result.success) throw new Error(result.error);
+      if (!result.data) throw new Error("No data returned");
       await writeOutput(sessionId, result.data);
     } catch (err) {
       console.error("Output generation failed:", err);
