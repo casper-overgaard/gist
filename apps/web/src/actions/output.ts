@@ -29,7 +29,7 @@ export async function generateOutputAction(
     );
     return { success: true, data: output };
   } catch (error: unknown) {
-    console.error("Output generation error:", error?.message, error?.cause, error?.text);
+    console.error("Output generation error:", error);
     return { success: false, error: error instanceof Error ? error.message : "Failed to generate output" };
   }
 }

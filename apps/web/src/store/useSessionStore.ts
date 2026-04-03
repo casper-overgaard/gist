@@ -36,7 +36,7 @@ interface SessionState {
   updateAssetPosition: (assetId: string, x: number, y: number, saveToDb?: boolean) => Promise<void>;
   removeAsset: (assetId: string) => Promise<void>;
   setOutputType: (sessionId: string, outputType: Session["selectedOutputType"]) => Promise<void>;
-  writeSynthesis: (sessionId: string, synthesis: SessionSynthesis) => Promise<void>;
+  writeSynthesis: (sessionId: string, synthesis: Omit<SessionSynthesis, "id" | "sessionId" | "createdAt">) => Promise<void>;
   writeQuestions: (sessionId: string, questions: ClarificationQuestion[]) => Promise<void>;
   answerQuestion: (sessionId: string, answer: ClarificationAnswer) => Promise<void>;
   writeOutput: (sessionId: string, output: OutputDocument) => Promise<void>;
@@ -193,7 +193,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     await updateDoc(sessionRef, { selectedOutputType: outputType, updatedAt: new Date().toISOString() });
   },
 
-  writeSynthesis: async (sessionId: string, synthesis: SessionSynthesis) => {
+  writeSynthesis: async (sessionId: string, synthesis: Omit<SessionSynthesis, "id" | "sessionId" | "createdAt">) => {
     const synthRef = doc(db, `sessions/${sessionId}/synthesis`, "latest");
     await setDoc(synthRef, { ...synthesis, sessionId, createdAt: new Date().toISOString() });
   },
