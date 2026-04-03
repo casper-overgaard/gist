@@ -26,16 +26,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm run lint
+        run: pnpm --filter web run lint
 
       - name: Typecheck
-        run: pnpm run typecheck
+        run: pnpm --filter web run typecheck
 
-      - name: Test
-        run: pnpm run test
+      - name: Unit Tests (web)
+        run: pnpm --filter web run test
+
+      - name: Unit Tests (test-harness)
+        run: pnpm --filter @signalboard/test-harness run test
 
       - name: Build
-        run: pnpm run build
+        run: pnpm --filter web run build
 
   deploy:
     runs-on: ubuntu-latest
