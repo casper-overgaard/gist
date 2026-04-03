@@ -10,8 +10,8 @@ export async function synthesizeSessionAction(
   try {
     const synthesis = await synthesizeSession(sessionId, analyses);
     return { success: true, data: synthesis };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Synthesis Error:", error);
-    return { success: false, error: error.message || "Failed to synthesize session" };
+    return { success: false, error: error instanceof Error ? error.message : "Failed to synthesize session" };
   }
 }

@@ -146,6 +146,7 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function OutputBody({ output }: { output: { outputType: string; structuredPayload: Record<string, any>; confidenceNotes: string } }) {
   const p = output.structuredPayload;
 

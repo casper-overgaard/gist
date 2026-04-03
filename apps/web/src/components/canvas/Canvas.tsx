@@ -10,6 +10,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useSessionStore } from "@/store/useSessionStore";
+import { Asset } from "@signalboard/domain";
 import TextNodeComponent from "./TextNode";
 import ImageNodeComponent from "./ImageNode";
 import UrlNodeComponent from "./UrlNode";
@@ -86,7 +87,7 @@ export default function Canvas() {
     setUrlInputOpen(false);
 
     const assetId = crypto.randomUUID();
-    const placeholder: any = {
+    const placeholder: Asset = {
       id: assetId,
       sessionId,
       type: "url" as const,
@@ -121,7 +122,7 @@ export default function Canvas() {
         metadata: {
           ...withMeta.metadata,
           loadingStatus: "done",
-          analysis: analysisResult.success ? (analysisResult as any).data : null,
+          analysis: analysisResult.success && "data" in analysisResult ? analysisResult.data : null,
         },
       });
     } catch (err) {
@@ -161,10 +162,10 @@ export default function Canvas() {
       const file = event.dataTransfer.files[0];
       if (!file.type.startsWith('image/')) return;
 
-      const newAsset: any = {
+      const newAsset: Asset = {
         id: crypto.randomUUID(),
         sessionId: sessionId,
-        type: "image",
+        type: "image" as const,
         rawText: null,
         metadata: { loadingStatus: 'uploading' },
         canvasPosition: { x: dropX, y: dropY },

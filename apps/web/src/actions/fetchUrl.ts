@@ -56,7 +56,7 @@ export async function fetchUrlMetadataAction(
       success: true,
       data: { url, title: title ?? domain, description, imageUrl, domain },
     };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Failed to fetch URL" };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : "Failed to fetch URL" };
   }
 }

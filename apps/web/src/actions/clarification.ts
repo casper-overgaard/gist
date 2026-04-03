@@ -16,8 +16,8 @@ export async function planClarificationQuestionsAction(
       conflictingSignals
     );
     return { success: true, data: questions };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Clarification planning error:", error);
-    return { success: false, error: error.message || "Failed to plan clarification questions" };
+    return { success: false, error: error instanceof Error ? error.message : "Failed to plan clarification questions" };
   }
 }

@@ -28,8 +28,8 @@ export async function generateOutputAction(
       params.version
     );
     return { success: true, data: output };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Output generation error:", error?.message, error?.cause, error?.text);
-    return { success: false, error: error.message || "Failed to generate output" };
+    return { success: false, error: error instanceof Error ? error.message : "Failed to generate output" };
   }
 }
