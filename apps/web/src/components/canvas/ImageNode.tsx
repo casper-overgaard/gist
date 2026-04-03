@@ -1,14 +1,23 @@
 import { Asset } from "@signalboard/domain";
 import { Handle, Position } from "@xyflow/react";
+import { useSessionStore } from "@/store/useSessionStore";
 
 export default function ImageNodeComponent({ data }: { data: { asset: Asset } }) {
   const { asset } = data;
+  const { removeAsset } = useSessionStore();
   const imageUrl = asset.contentRef || asset.source;
   const analysis = asset.metadata?.analysis;
   const metadata = asset.metadata || {};
 
   return (
-    <div className="bg-neutral-900 border border-neutral-800 p-2 rounded shadow-xl max-w-[300px]">
+    <div className="bg-neutral-900 border border-neutral-800 p-2 rounded shadow-xl max-w-[300px] relative group">
+      <button
+        onClick={() => removeAsset(asset.id)}
+        className="absolute top-1.5 right-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-neutral-500 hover:text-red-400 hover:bg-neutral-800 text-xs leading-none"
+        title="Remove"
+      >
+        ×
+      </button>
       <Handle type="target" position={Position.Top} className="opacity-0" />
       
       {/* Loading state rendering */}

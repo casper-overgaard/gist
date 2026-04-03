@@ -73,7 +73,7 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
           <h2 className="text-sm font-semibold text-neutral-200 tracking-wide uppercase">Clarify Direction</h2>
           <p className="text-xs text-neutral-500 mt-1">
             {hasAnalyzedAssets
-              ? "Add assets to the canvas, then synthesize to generate targeted questions."
+              ? "Signals ready. Run synthesis to generate targeted questions."
               : "Add and analyze assets on the canvas first."}
           </p>
         </div>

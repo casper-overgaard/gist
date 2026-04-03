@@ -6,7 +6,7 @@ import { analyzeAssetAction } from "@/actions/analyze";
 
 export default function TextNodeComponent({ data }: { data: { asset: Asset } }) {
   const { asset } = data;
-  const { updateAssetText, addAsset } = useSessionStore();
+  const { updateAssetText, addAsset, removeAsset } = useSessionStore();
   
   const [isEditing, setIsEditing] = useState(false);
   const [textVal, setTextVal] = useState(asset.rawText || "");
@@ -48,7 +48,14 @@ export default function TextNodeComponent({ data }: { data: { asset: Asset } }) 
   };
 
   return (
-    <div className="bg-neutral-800 border border-neutral-700 w-[240px] p-4 font-mono text-sm rounded shadow-lg">
+    <div className="bg-neutral-800 border border-neutral-700 w-[240px] p-4 font-mono text-sm rounded shadow-lg relative group">
+      <button
+        onClick={() => removeAsset(asset.id)}
+        className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-neutral-500 hover:text-red-400 hover:bg-neutral-700 text-xs leading-none"
+        title="Remove"
+      >
+        ×
+      </button>
       <Handle type="target" position={Position.Top} className="opacity-0" />
       
       {isEditing ? (

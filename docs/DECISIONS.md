@@ -35,6 +35,14 @@ Template:
 - Spec impact: None. Deployment plumbing only.
 - Follow-up required: Provision `OPENROUTER_API_KEY` in GCP Secret Manager (project gist-6062f) and re-add to `apphosting.yaml` env block. `NEXT_PUBLIC_FIREBASE_*` variables must be set in Firebase App Hosting environment config (not in apphosting.yaml, as they are baked at build time).
 
+- Date: 2026-04-03
+- Decision: Switch deployment from Firebase App Hosting to Vercel.
+- Context: Firebase App Hosting uses Google Cloud Buildpacks which scan the repo root for framework detection. The buildpack cannot find `next.config.ts` inside `apps/web` in a pnpm monorepo. As a result, the `google.nodejs.firebasebundle` buildpack never triggered `next build`, and the container deployed with source files but no `.next` output — crashing immediately on PORT=8080.
+- Alternatives considered: Custom Dockerfile with explicit monorepo build steps; moving workspace packages into apps/web.
+- Why chosen: Vercel has first-class pnpm monorepo support, auto-detects Next.js in subdirectories, and correctly runs `pnpm run build` in `apps/web`. Zero-config.
+- Spec impact: Spec §21.1 recommends Vercel as default — this is now the active deployment. Firebase App Hosting backend still exists in GCP but is unused. Firebase is used only for Firestore/Storage SDK calls, not hosting.
+- Follow-up required: Connect Vercel GitHub integration for auto-deploy on push (currently requires manual `vercel --prod`).
+
 - Date: 2026-03-31
 - Decision: Revert Next.js `output: 'export'` in favor of Server Actions for `OPENROUTER_API_KEY` protection.
 - Context: Initiating Wave 2 LLM inferences required API interactions with OpenRouter. Executing LLM fetching explicitly requires backend capabilities to hide operational secrets.
