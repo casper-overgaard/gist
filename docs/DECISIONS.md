@@ -43,6 +43,30 @@ Template:
 - Spec impact: Spec §21.1 recommends Vercel as default — this is now the active deployment. Firebase App Hosting backend still exists in GCP but is unused. Firebase is used only for Firestore/Storage SDK calls, not hosting.
 - Follow-up required: Connect Vercel GitHub integration for auto-deploy on push (currently requires manual `vercel --prod`).
 
+- Date: 2026-04-03
+- Decision: GitHub Actions CI/CD — auto-deploy to Vercel on main push, E2E runs post-deploy.
+- Context: Vercel deployment was previously manual (`vercel --prod`). The follow-up item from the Vercel decision required automating this.
+- Alternatives considered: Vercel GitHub App (dashboard-based integration).
+- Why chosen: GitHub Actions approach keeps all CI/CD in code, uses `VERCEL_TOKEN`/`VERCEL_ORG_ID`/`VERCEL_PROJECT_ID` GitHub secrets, and allows the E2E job to depend on the deploy job completing before running tests against production.
+- Spec impact: Fulfills spec §21.5 CI/CD requirements. Pipeline: `build_and_test` → `deploy` → `e2e` on main push.
+- Follow-up required: None.
+
+- Date: 2026-04-03
+- Decision: Integrate Sentry via `@sentry/nextjs` (FR-051).
+- Context: FR-051 required error capture via Sentry. The integration was deferred to Wave 4/5 scope.
+- Alternatives considered: None — Sentry was the specified target.
+- Why chosen: `@sentry/nextjs` provides auto-instrumentation of server functions via `withSentryConfig` in `next.config.ts`. `global-error.tsx` handles app-router error boundaries.
+- Spec impact: FR-051 is now implemented. All five server actions (`analyze`, `synthesize`, `clarification`, `output`, `fetchUrl`) call `Sentry.captureException` in catch blocks. Client/server/edge configs present.
+- Follow-up required: Provision `NEXT_PUBLIC_SENTRY_DSN` in Vercel. Create Sentry project at sentry.io. Without DSN the integration no-ops silently.
+
+- Date: 2026-04-03
+- Decision: Firestore security rules remain open (`allow read, write: if true`) for development.
+- Context: All session and subcollection data is currently unprotected. This was intentional during development to avoid auth friction.
+- Alternatives considered: Auth from Wave 1 onward.
+- Why chosen: V1 scope defers auth. The comment in `firestore.rules` marks Wave 5 as the auth gating point.
+- Spec impact: NFR-024 (server-only keys not exposed to client) is satisfied for API keys. Session data isolation is not enforced. Acceptable for dev/internal V1.
+- Follow-up required: Wave 5 must restrict rules to `request.auth != null` and implement Firebase Auth.
+
 - Date: 2026-03-31
 - Decision: Revert Next.js `output: 'export'` in favor of Server Actions for `OPENROUTER_API_KEY` protection.
 - Context: Initiating Wave 2 LLM inferences required API interactions with OpenRouter. Executing LLM fetching explicitly requires backend capabilities to hide operational secrets.

@@ -20,25 +20,26 @@ For each LLM operation, document:
 
 **Purpose:** Per-asset multimodal interpretation. Extracts visual and semantic tags, descriptive signals, and a confidence score from an image or text asset.
 
-**Model:** google/gemini-2.5-flash via OpenRouter (multimodal required)
+**Model:** google/gemini-2.5-flash via OpenRouter (multimodal required for image assets)
 
 **Input:**
-- imageUrl: string (for image assets)
-- rawText: string (for text assets)
+- `imageUrl: string` — for image assets (passed as image content block)
+- `rawText: string` — for text assets
 
-**Output schema:** `AssetAnalysisSchema` (packages/domain)
+**Output schema:** `AssetAnalysisSchema` (packages/domain) — minus `id`, `assetId`, `createdAt`, `modelVersion` (generated)
 ```
 tags: string[]
 descriptiveSignals: string[]
 confidence: number (0–1)
-modelVersion: string
 ```
 
-**Retry/repair:** Vercel AI SDK generateObject handles schema repair. Max 2 retries.
+**Retry/repair:** Vercel AI SDK `generateObject` handles schema repair. Max 2 retries.
 
-**Fallback:** On failure, asset is marked `loadingStatus: 'error'` and excluded from synthesis.
+**Fallback:** On failure, `analyzeAssetAction` returns `{ success: false, error }`. Asset is marked `loadingStatus: 'error'` and excluded from synthesis.
 
-**Fixture coverage:** `packages/test-harness/src/analysis.test.ts` — determinism bounds
+**Sentry:** `captureException` called in catch block of `analyzeAssetAction`.
+
+**Fixture coverage:** `packages/test-harness/src/analysis.test.ts` — 1 live test, skipped on CI
 
 **Known failure modes:** Low-signal images (solid colors, blank screenshots) produce generic tags.
 
@@ -51,10 +52,10 @@ modelVersion: string
 **Model:** google/gemini-2.5-flash via OpenRouter
 
 **Input:**
-- sessionId: string
-- analyses: AssetAnalysis[] — all per-asset analyses for the session
+- `sessionId: string`
+- `analyses: AssetAnalysis[]` — all per-asset analyses for the session
 
-**Output schema:** `SessionSynthesisSchema` minus id/sessionId/createdAt (generated)
+**Output schema:** `SessionSynthesisSchema` minus `id`/`sessionId`/`createdAt` (generated)
 ```
 aggregateSignals: string[]
 conflictingSignals: string[]
@@ -64,13 +65,15 @@ recommendedQuestions: string[]
 
 **Prompt version:** synthesis.v1 — instructs model to be decisive, avoid generic questions, root conflicts in actual signal tensions.
 
-**Retry/repair:** Vercel AI SDK generateObject. Max 2 retries.
+**Retry/repair:** Vercel AI SDK `generateObject`. Max 2 retries.
 
-**Fallback:** On failure, synthesizeSessionAction returns `{ success: false, error }`. UI surfaces error to user.
+**Fallback:** On failure, `synthesizeSessionAction` returns `{ success: false, error }`. `ClarificationPanel` logs error.
 
-**Fixture coverage:** Not yet created. Scheduled for Wave 5.
+**Sentry:** `captureException` called in catch block of `synthesizeSessionAction`.
 
-**Known failure modes:** With fewer than 3 assets, ambiguityScore tends to be artificially low.
+**Fixture coverage:** `packages/test-harness/src/synthesis.test.ts` — 8 schema validation tests (static fixtures) + 1 live LLM test (skipped on CI). **All passing.**
+
+**Known failure modes:** With fewer than 3 assets, `ambiguityScore` tends to be artificially low.
 
 ---
 
@@ -81,10 +84,10 @@ recommendedQuestions: string[]
 **Model:** google/gemini-2.5-flash via OpenRouter
 
 **Input:**
-- sessionId: string
-- recommendedQuestions: string[] — topic labels from synthesis
-- aggregateSignals: string[]
-- conflictingSignals: string[]
+- `sessionId: string`
+- `recommendedQuestions: string[]` — topic labels from synthesis
+- `aggregateSignals: string[]`
+- `conflictingSignals: string[]`
 
 **Output schema:** Inline Zod schema in `packages/llm/src/clarification.ts`
 ```
@@ -96,13 +99,15 @@ questions[]:
   priority: number (1–5)
 ```
 
-**Question cap:** 5 max (spec §16.2 specifies 3; currently 5 — ASSUMPTION safe default pending validation)
+**Question cap:** `MAX_QUESTIONS = 5`. Spec §16.2 specifies 3. **ASSUMPTION (safe default):** kept at 5 pending Wave 5 validation.
 
-**Retry/repair:** Vercel AI SDK generateObject. Max 2 retries.
+**Retry/repair:** Vercel AI SDK `generateObject`. Max 2 retries.
 
-**Fallback:** On failure, planClarificationQuestionsAction returns `{ success: false }`. ClarificationPanel surfaces error.
+**Fallback:** On failure, `planClarificationQuestionsAction` returns `{ success: false }`. `ClarificationPanel` logs error; synthesis results still available.
 
-**Fixture coverage:** Not yet created. Scheduled for Wave 5.
+**Sentry:** `captureException` called in catch block of `planClarificationQuestionsAction`.
+
+**Fixture coverage:** No static fixtures yet. Scheduled for Wave 5.
 
 **Known failure modes:** Occasionally generates overlapping questions when conflicts are subtle.
 
@@ -114,14 +119,16 @@ questions[]:
 
 **Model:** google/gemini-2.5-flash via OpenRouter
 
-**Input:**
-- outputType: 'UI/Product Style Direction'
-- aggregateSignals: string[]
-- conflictingSignals: string[]
-- answeredPairs: Array<{ question: string, answer: string }>
-- allSignals: string[] — flat list of all asset descriptive signals
+**Mode:** `generateObject` with `mode: 'json'` — required for Gemini via OpenRouter to return raw JSON rather than prose.
 
-**Output schema:** UIDirectionOutputSchema (packages/llm/src/output.ts)
+**Input:**
+- `outputType: 'UI/Product Style Direction'`
+- `synthesis: { aggregateSignals: string[], conflictingSignals: string[] }`
+- `answeredPairs: Array<{ question: string, answer: string }>`
+- `allSignals: string[]` — flat list of all asset descriptive signals
+- `version: number`
+
+**Output schema:** `UIDirectionOutputSchema` (packages/llm/src/output.ts)
 ```
 directionSummary: string
 coreAttributes: string[]
@@ -136,13 +143,15 @@ suggestedNextSteps: string[]
 confidenceNotes: string
 ```
 
-**Retry/repair:** Vercel AI SDK generateObject. Max 2 retries.
+**Retry/repair:** Vercel AI SDK `generateObject`. Max 2 retries.
 
-**Fallback:** generateOutputAction returns `{ success: false }`. OutputPanel surfaces error.
+**Fallback:** `generateOutputAction` returns `{ success: false }`. `OutputPanel` surfaces error state.
 
-**Fixture coverage:** Not yet created. Scheduled for Wave 5.
+**Sentry:** `captureException` called in catch block of `generateOutputAction`.
 
-**Known failure modes:** Generic output when signal set is sparse. confidenceNotes should flag this.
+**Fixture coverage:** `packages/test-harness/src/output.test.ts` — 8 schema validation tests (static fixture) + 1 live LLM test (skipped on CI). **All passing.**
+
+**Known failure modes:** Generic output when signal set is sparse. `confidenceNotes` should flag this.
 
 ---
 
@@ -152,14 +161,11 @@ confidenceNotes: string
 
 **Model:** google/gemini-2.5-flash via OpenRouter
 
-**Input:**
-- outputType: 'Brand/Visual Direction Brief'
-- aggregateSignals: string[]
-- conflictingSignals: string[]
-- answeredPairs: Array<{ question: string, answer: string }>
-- allSignals: string[]
+**Mode:** `generateObject` with `mode: 'json'` — same requirement as output-ui-direction.v1.
 
-**Output schema:** BrandDirectionOutputSchema (packages/llm/src/output.ts)
+**Input:** Same as output-ui-direction.v1 except `outputType: 'Brand/Visual Direction Brief'`.
+
+**Output schema:** `BrandDirectionOutputSchema` (packages/llm/src/output.ts)
 ```
 directionSummary: string
 brandPersonality: string[]
@@ -174,10 +180,12 @@ suggestedNextSteps: string[]
 confidenceNotes: string
 ```
 
-**Retry/repair:** Vercel AI SDK generateObject. Max 2 retries.
+**Retry/repair:** Vercel AI SDK `generateObject`. Max 2 retries.
 
-**Fallback:** generateOutputAction returns `{ success: false }`. OutputPanel surfaces error.
+**Fallback:** `generateOutputAction` returns `{ success: false }`. `OutputPanel` surfaces error state.
 
-**Fixture coverage:** Not yet created. Scheduled for Wave 5.
+**Sentry:** `captureException` called in catch block of `generateOutputAction`.
+
+**Fixture coverage:** `packages/test-harness/src/output.test.ts` — 3 schema validation tests (static fixture). **All passing.**
 
 **Known failure modes:** Brand direction can conflate product and identity concerns when input is mixed.

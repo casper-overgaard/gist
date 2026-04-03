@@ -1,11 +1,11 @@
 # spec.md — Inspiration-to-Direction Generator
 
-Version: 1.0  
-Status: Canonical build spec  
-Mode: Spec-Driven Development (SDD)  
-Primary execution environment: Antigravity with Gemini 3.1 Pro High as orchestrator  
-Primary model provider for product runtime: OpenRouter  
-Error/observability target: Sentry  
+Version: 1.1
+Status: Canonical build spec — Waves 0–4 complete, Wave 5 in progress
+Mode: Spec-Driven Development (SDD)
+Execution environment: Claude Code (claude-sonnet-4-6)
+Primary model provider for product runtime: OpenRouter → Google Gemini 2.5 Flash
+Error/observability target: Sentry (@sentry/nextjs)
 Project codename: **Signalboard**
 
 ---
@@ -388,13 +388,16 @@ Antigravity/Gemini may adapt exact implementation details, but must preserve the
 - Testing: Vitest, Playwright, schema-contract tests, LLM harness fixtures
 - Validation: Zod
 
-### 13.2 Important note on Google AI Studio
-Google AI Studio is not a primary recommendation for general app database/storage unless the actual connected service is appropriate for production-grade persistence. Use it only where it genuinely fits. Preferred default remains:
-- app data: Postgres
-- asset storage: object store
-- model experimentation/evals: optional Google AI tooling if useful
+### 13.2 Persistence — actual implementation
 
-Antigravity may connect to Google AI Studio for model experimentation or adjunct workflows, but must not force an unsuitable persistence design just because it is available.
+**DECISION DELTA (2026-03-31):** The original spec recommended Postgres. The implementation uses Firebase Firestore (NoSQL document store) and Firebase Storage. This was approved in DECISIONS.md because the open-canvas, highly-mutative session structure maps more naturally to Firestore documents than relational tables.
+
+Actual persistence layer:
+- app data: Firestore (sessions + subcollections: assets, synthesis, questions, answers, outputs)
+- asset storage: Firebase Storage
+- model experimentation/evals: not applicable for V1
+
+`DATABASE_URL` is therefore not used. Firebase is configured via `NEXT_PUBLIC_FIREBASE_*` env vars.
 
 ### 13.3 Logical modules
 - `apps/web` — user-facing app
@@ -557,6 +560,8 @@ Examples of valid question intents:
 ### 16.2 Question cap
 Initial default: max 3 questions per synthesis cycle unless a spec delta changes this.
 
+**ASSUMPTION (safe default, Wave 3):** Current implementation caps at 5 (`MAX_QUESTIONS = 5` in `packages/llm/src/clarification.ts`). Reduction to 3 or configurable cap is tracked for Wave 5 hardening.
+
 ### 16.3 Avoided behavior
 - no open-ended interviewing loops
 - no repeated paraphrase questions
@@ -696,14 +701,30 @@ Deploy web app on Vercel unless Antigravity determines another deployment target
 - preview
 - production
 
-### 21.3 Environment variables (minimum placeholders)
-- `OPENROUTER_API_KEY`
-- `OPENROUTER_BASE_URL` (if used)
-- `SENTRY_DSN`
-- `DATABASE_URL`
-- `STORAGE_*` variables as selected
-- `APP_BASE_URL`
-- any provider-specific server-side secrets
+### 21.3 Environment variables (actual — as of Wave 4)
+
+**App runtime (Vercel):**
+- `OPENROUTER_API_KEY` — LLM calls via OpenRouter (server-only)
+- `NEXT_PUBLIC_SENTRY_DSN` — Sentry error capture (client + server)
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+- `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`
+
+**CI/CD (GitHub Actions secrets):**
+- `VERCEL_TOKEN` — deployment token
+- `VERCEL_ORG_ID` — Vercel org
+- `VERCEL_PROJECT_ID` — Vercel project
+
+**Optional (Sentry source maps — not yet provisioned):**
+- `SENTRY_AUTH_TOKEN`
+- `SENTRY_ORG`
+- `SENTRY_PROJECT`
+
+Note: `DATABASE_URL` is not used. Firestore replaces Postgres (see §13.2).
 
 ### 21.4 Secret handling
 Do not commit secrets.
@@ -711,19 +732,20 @@ Do not generate production secrets into tracked files.
 Gemini/Antigravity may generate local development placeholders or helper scripts, but production/runtime secrets must be injected through platform secret stores.
 
 ### 21.5 CI/CD
-GitHub Actions must run at minimum:
-- install
-- lint
-- typecheck
-- unit/integration tests
-- schema/contract tests
-- Playwright E2E on suitable triggers
-- build
 
-Optional:
-- preview deploy integration
-- dependency audit
-- bundle/perf smoke check
+Implemented as of Wave 4/5. Pipeline in `.github/workflows/ci.yml`:
+
+**Job: build_and_test** (all pushes and PRs)
+- lint (`pnpm --filter web run lint`)
+- typecheck (`pnpm --filter web run typecheck`)
+- unit tests: web (`pnpm --filter web run test`) + test-harness (`pnpm --filter @signalboard/test-harness run test`)
+- build (`pnpm --filter web run build`)
+
+**Job: deploy** (main branch only, after build_and_test)
+- Vercel production deploy via `vercel --prod --yes`
+
+**Job: e2e** (main branch only, after deploy)
+- Playwright Chromium against production URL (`https://gist-web-jet.vercel.app`)
 
 ---
 
@@ -756,7 +778,7 @@ Antigravity may adapt exact mono-repo shape, but must preserve the documentation
 
 ## 23. Wave plan (binding)
 
-### Wave 0 — Foundation and canon setup
+### Wave 0 — Foundation and canon setup ✓ COMPLETE
 Deliver:
 - repo scaffold
 - docs scaffold
@@ -765,69 +787,60 @@ Deliver:
 - environment baseline
 - canonical schemas skeleton
 
-Gate:
-- repo boots cleanly
-- CI runs
-- docs present
-- architecture skeleton consistent with spec
+Gate: **PASS** — see `docs/hardening/WAVE_0_REPORT.md`
 
-### Wave 1 — Canvas and session core
+### Wave 1 — Canvas and session core ✓ COMPLETE
 Deliver:
 - session lifecycle
 - workspace shell
 - asset add/remove
 - persistence skeleton
 
-Gate:
-- core workspace usable
-- state persistence proven
-- basic test coverage in place
+Gate: **PASS** — see `docs/hardening/WAVE_1_REPORT.md`
 
-### Wave 2 — Ingestion and analysis
+### Wave 2 — Ingestion and analysis ✓ COMPLETE
 Deliver:
 - asset normalization
 - per-asset analysis contracts
 - synthesis aggregation
 - first harness fixtures
 
-Gate:
-- analysis pipeline stable
-- malformed data handled
-- harness can evaluate core outputs
+Gate: **PASS** — see `docs/hardening/WAVE_2_REPORT.md`
 
-### Wave 3 — Ambiguity and clarification
+### Wave 3 — Ambiguity and clarification ✓ COMPLETE
 Deliver:
 - ambiguity scoring
 - question ranking
 - clarification UI
 - answer capture and synthesis re-entry
 
-Gate:
-- questions are bounded and high-value
-- edge-case ambiguity flows tested
+Gate: **PASS** — see `docs/hardening/WAVE_3_REPORT.md`
 
-### Wave 4 — Structured outputs
+### Wave 4 — Structured outputs ✓ COMPLETE
 Deliver:
-- two output categories
+- two output categories (UI/Product Style Direction + Brand/Visual Direction Brief)
 - output generation contracts
 - markdown export
-- output history
+- output history/versioning
+- asset deletion
+- URL asset ingestion
+- Playwright E2E happy-path suite (5 tests)
+- test-harness schema fixtures (synthesis + output)
+- Vercel auto-deploy via GitHub Actions
 
-Gate:
-- outputs validate against schema
-- export and revisions work
+Gate: **PASS** — see `docs/hardening/WAVE_4_REPORT.md`
 
-### Wave 5 — Hardening and release candidate
+### Wave 5 — Hardening and release candidate ⟳ IN PROGRESS
 Deliver:
 - full regression sweep
 - E2E hardening
 - perf/security review
-- observability completion
+- observability completion (Sentry DSN provisioning)
+- auth/session isolation (Firestore rules currently open)
+- question cap alignment (spec: 3, current: 5)
 - release checklist
 
-Gate:
-- hardening PASS
-- release candidate stable
+Gate: pending
 
 ---
 
