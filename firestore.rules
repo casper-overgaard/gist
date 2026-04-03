@@ -2,12 +2,12 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Wave 1-2: Open read/write for session and asset data.
-    // Wave 3 (auth): Restrict to authenticated users only.
+    // Wave 1-4: Open read/write for all session data.
+    // Wave 5 (auth): Restrict to authenticated users only.
     match /sessions/{sessionId} {
       allow read, write: if true;
 
-      match /assets/{assetId} {
+      match /{subcollection}/{document=**} {
         allow read, write: if true;
       }
     }
