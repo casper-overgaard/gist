@@ -40,7 +40,8 @@ const SYSTEM_PROMPT = `You are a creative director producing a structured direct
 Your output must be grounded in the specific signals provided — not generic design advice.
 Be decisive. Where signals conflict and were not resolved by clarification answers, name the tension explicitly in confidenceNotes.
 Avoid filler phrases like "clean and modern" unless the signals specifically support them.
-Every section should feel earned by the input.`;
+Every section should feel earned by the input.
+Respond with a valid JSON object only — no markdown, no prose outside the JSON.`;
 
 function buildUserMessage(
   aggregateSignals: string[],
@@ -170,6 +171,7 @@ export async function generateOutput(
       model: defaultModel,
       schema: UIDirectionOutputSchema,
       messages,
+      mode: "json",
     });
     const payload = result.object;
     return {
@@ -187,6 +189,7 @@ export async function generateOutput(
       model: defaultModel,
       schema: BrandDirectionOutputSchema,
       messages,
+      mode: "json",
     });
     const payload = result.object;
     return {
