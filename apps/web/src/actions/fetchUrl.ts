@@ -1,4 +1,5 @@
 "use server";
+import * as Sentry from "@sentry/nextjs";
 
 export interface UrlMetadata {
   url: string;
@@ -57,6 +58,7 @@ export async function fetchUrlMetadataAction(
       data: { url, title: title ?? domain, description, imageUrl, domain },
     };
   } catch (err: unknown) {
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)));
     return { success: false, error: err instanceof Error ? err.message : "Failed to fetch URL" };
   }
 }

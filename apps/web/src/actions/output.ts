@@ -1,4 +1,5 @@
 "use server";
+import * as Sentry from "@sentry/nextjs";
 
 import { generateOutput } from "@signalboard/llm";
 import { OutputDocument } from "@signalboard/domain";
@@ -29,6 +30,7 @@ export async function generateOutputAction(
     );
     return { success: true, data: output };
   } catch (error: unknown) {
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)));
     console.error("Output generation error:", error);
     return { success: false, error: error instanceof Error ? error.message : "Failed to generate output" };
   }
