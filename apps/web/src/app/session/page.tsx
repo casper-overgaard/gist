@@ -48,11 +48,11 @@ function SessionContent() {
       <div className="flex-1 h-full min-w-0">
         <Canvas />
       </div>
-      <div className="w-80 h-full border-l border-[rgba(255,255,255,0.06)] flex flex-col overflow-hidden shrink-0">
+      <div className="w-80 h-full border-l border-sb-border-subtle flex flex-col overflow-hidden shrink-0">
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           <ClarificationPanel sessionId={id} />
         </div>
-        <div className="h-px bg-[rgba(255,255,255,0.06)] shrink-0" />
+        <div className="h-px bg-sb-border-subtle shrink-0" />
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           <OutputPanel sessionId={id} />
         </div>

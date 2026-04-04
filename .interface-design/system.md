@@ -17,9 +17,10 @@ All tokens defined as CSS custom properties in `apps/web/src/app/globals.css` an
 | `--sb-base` / `bg-sb-base` | `#100F0E` | Page background, canvas floor |
 | `--sb-surface-1` / `bg-sb-surface-1` | `#1A1816` | Cards, panels, inputs |
 | `--sb-surface-2` / `bg-sb-surface-2` | `#231F1B` | Hover states, dropdowns |
-| `--sb-border` | `rgba(255,255,255,0.06)` | Default separation — barely visible |
-| `--sb-border-hover` | `rgba(255,255,255,0.10)` | Interactive hover |
-| `--sb-border-emphasis` | `rgba(255,255,255,0.14)` | Section dividers, focus |
+| `--sb-border-subtle` / `border-sb-border-subtle` | dark: `rgba(255,255,255,0.05)` · light: `rgba(0,0,0,0.05)` | Layout separators, tag borders |
+| `--sb-border` / `border-sb-border` | dark: `rgba(255,255,255,0.08)` · light: `rgba(0,0,0,0.07)` | Default card borders |
+| `--sb-border-hover` / `border-sb-border-hover` | dark: `rgba(255,255,255,0.13)` · light: `rgba(0,0,0,0.12)` | Hover state |
+| `--sb-border-emphasis` / `border-sb-border-emphasis` | dark: `rgba(255,255,255,0.18)` · light: `rgba(0,0,0,0.17)` | Section dividers, focus rings |
 | `--sb-text-primary` / `text-sb-text-primary` | `#F0EBE3` | Primary text — slightly warm white |
 | `--sb-text-secondary` / `text-sb-text-secondary` | `#A39888` | Supporting text |
 | `--sb-text-muted` / `text-sb-text-muted` | `#5C524A` | Labels, metadata, placeholders |
@@ -27,6 +28,16 @@ All tokens defined as CSS custom properties in `apps/web/src/app/globals.css` an
 | `--sb-accent-soft` | `rgba(201,148,74,0.12)` | Selected state backgrounds |
 | `--sb-accent-dim` | `rgba(201,148,74,0.45)` | Accent borders |
 | `--sb-destructive` / `text-sb-destructive` | `#C45050` | Delete/error only |
+
+**Light mode palette** (same token names, different values in `[data-theme="light"]`):
+- Base: `#F5F0EA` — warm cream paper
+- Surface 1: `#FFFCF8` — slightly lighter card surface
+- Surface 2: `#EDE7DF` — inset / hover
+- Text primary: `#1C1814` — warm near-black ink
+- Text secondary: `#5C4E42` — warm medium brown
+- Text muted: `#9B8878` — warm pale ink
+- Accent: `#B8822C` — amber slightly deeper (more readable on light)
+- Flash prevention: inline `<script>` in `layout.tsx` reads `localStorage('sb-theme')` before hydration.
 
 **Rule:** Never reach for `neutral-*`. Use only `sb-*` tokens. Warm palette throughout.
 
@@ -54,7 +65,7 @@ No shadows. Borders only.
 | Metadata / status | `text-[11px] text-sb-text-muted` |
 | Asset tags | `text-[9px] tracking-[0.12em] uppercase text-sb-text-muted` |
 | Button labels | `text-[10px] tracking-[0.06–0.15em] uppercase font-medium` |
-| Text note body | `font-mono text-xs leading-relaxed` |
+| Text note body | `font-mono text-[13px] leading-[1.65]` — 13px is more precise than text-sm/xs |
 
 ---
 
@@ -118,7 +129,7 @@ Card must have `relative overflow-hidden` for this to clip correctly.
 
 ## ReactFlow
 
-- Canvas background: `style={{ background: "#100F0E" }}` on `<ReactFlow>` + `colorMode="dark"`
+- Canvas background: `style={{ background: "var(--sb-base)" }}` on `<ReactFlow>` — adapts to theme
 - `<Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgba(255,255,255,0.08)" />`
 - Controls overridden in globals.css: surface-1 background, sb-border borders, sb-accent on hover
 

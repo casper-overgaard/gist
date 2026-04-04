@@ -53,7 +53,7 @@ export default function QuestionCard({ question, sessionId }: QuestionCardProps)
 
   if (submitted) {
     return (
-      <div className="rounded border border-[rgba(255,255,255,0.06)] bg-sb-surface-1 p-3 opacity-50">
+      <div className="rounded border border-sb-border-subtle bg-sb-surface-1 p-3 opacity-50">
         <p className="text-xs text-sb-text-secondary leading-snug">{question.prompt}</p>
         <p className="text-[10px] tracking-[0.10em] uppercase text-sb-accent opacity-60 mt-2">
           Answered
@@ -63,7 +63,7 @@ export default function QuestionCard({ question, sessionId }: QuestionCardProps)
   }
 
   return (
-    <div className="rounded border border-[rgba(255,255,255,0.08)] bg-sb-surface-1 p-3">
+    <div className="rounded border border-sb-border bg-sb-surface-1 p-3">
       <p className="text-xs text-sb-text-primary mb-3 leading-relaxed">{question.prompt}</p>
 
       {(question.questionType === "single_select" || question.questionType === "multi_select") && (
@@ -75,7 +75,7 @@ export default function QuestionCard({ question, sessionId }: QuestionCardProps)
               className={`text-left text-xs px-3 py-2 rounded border transition-colors ${
                 selected.includes(opt)
                   ? "border-[rgba(201,148,74,0.50)] bg-[rgba(201,148,74,0.10)] text-sb-accent"
-                  : "border-[rgba(255,255,255,0.06)] bg-sb-base text-sb-text-secondary hover:border-[rgba(255,255,255,0.12)] hover:text-sb-text-primary"
+                  : "border-sb-border-subtle bg-sb-base text-sb-text-secondary hover:border-sb-border-hover hover:text-sb-text-primary"
               }`}
             >
               {opt}
@@ -89,7 +89,7 @@ export default function QuestionCard({ question, sessionId }: QuestionCardProps)
           value={freeText}
           onChange={(e) => setFreeText(e.target.value)}
           placeholder="Type your answer…"
-          className="w-full bg-sb-base border border-[rgba(255,255,255,0.08)] rounded px-3 py-2 text-xs text-sb-text-primary outline-none focus:border-[rgba(201,148,74,0.40)] placeholder-sb-text-muted resize-none mb-3 transition-colors"
+          className="w-full bg-sb-base border border-sb-border rounded px-3 py-2 text-xs text-sb-text-primary outline-none focus:border-[rgba(201,148,74,0.40)] placeholder-sb-text-muted resize-none mb-3 transition-colors"
           rows={3}
         />
       )}

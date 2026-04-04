@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -19,6 +20,7 @@ import ImageNodeComponent from "./ImageNode";
 import UrlNodeComponent from "./UrlNode";
 import { uploadAssetImage } from "@/lib/storage";
 import { fetchUrlMetadataAction } from "@/actions/fetchUrl";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const nodeTypes = {
   text: TextNodeComponent,
@@ -62,7 +64,6 @@ function CanvasInner() {
     [updateAssetPosition]
   );
 
-  // ─── Scatter helper for paste positioning ───
   const pastePosition = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
     const cx = (rect?.left ?? 0) + (rect?.width ?? window.innerWidth) / 2;
@@ -73,7 +74,6 @@ function CanvasInner() {
     });
   }, [screenToFlowPosition]);
 
-  // ─── Add text note ───
   const handleAddText = async () => {
     const sessionId = getSessionId();
     if (!sessionId) return;
@@ -90,7 +90,6 @@ function CanvasInner() {
     await useSessionStore.getState().addAsset(newAsset);
   };
 
-  // ─── Add URL ───
   const handleAddUrl = async (e: React.FormEvent) => {
     e.preventDefault();
     const raw = urlInput.trim();
@@ -119,7 +118,6 @@ function CanvasInner() {
     try {
       const metaResult = await fetchUrlMetadataAction(raw);
       if (!metaResult.success) throw new Error(metaResult.error);
-
       const { title, description, imageUrl, domain, url } = metaResult.data;
       await useSessionStore.getState().addAsset({
         ...placeholder,
@@ -128,20 +126,15 @@ function CanvasInner() {
       });
     } catch (err) {
       console.error("URL asset failed:", err);
-      await useSessionStore.getState().addAsset({
-        ...placeholder,
-        metadata: { loadingStatus: "error" },
-      });
+      await useSessionStore.getState().addAsset({ ...placeholder, metadata: { loadingStatus: "error" } });
     } finally {
       setUrlLoading(false);
     }
   };
 
-  // ─── Shared image ingestion (used by drop + paste) ───
   const ingestImage = useCallback(async (file: File, pos: { x: number; y: number }) => {
     const sessionId = getSessionId();
     if (!sessionId) return;
-
     const newAsset: Asset = {
       id: crypto.randomUUID(),
       sessionId,
@@ -152,31 +145,20 @@ function CanvasInner() {
       createdAt: new Date().toISOString(),
     };
     await useSessionStore.getState().addAsset(newAsset);
-
     try {
       const imageUrl = await uploadAssetImage(sessionId, file);
-      await useSessionStore.getState().addAsset({
-        ...newAsset,
-        contentRef: imageUrl,
-        metadata: { loadingStatus: "idle" },
-      });
+      await useSessionStore.getState().addAsset({ ...newAsset, contentRef: imageUrl, metadata: { loadingStatus: "idle" } });
     } catch (err) {
       console.error("Image upload failed:", err);
-      await useSessionStore.getState().addAsset({
-        ...newAsset,
-        metadata: { loadingStatus: "error" },
-      });
+      await useSessionStore.getState().addAsset({ ...newAsset, metadata: { loadingStatus: "error" } });
     }
   }, []);
 
-  // ─── Shared URL text ingestion (used by paste) ───
   const ingestUrl = useCallback(async (raw: string, pos: { x: number; y: number }) => {
     const sessionId = getSessionId();
     if (!sessionId) return;
-
-    const assetId = crypto.randomUUID();
     const placeholder: Asset = {
-      id: assetId,
+      id: crypto.randomUUID(),
       sessionId,
       type: "url" as const,
       source: raw.startsWith("http") ? raw : `https://${raw}`,
@@ -186,11 +168,9 @@ function CanvasInner() {
       createdAt: new Date().toISOString(),
     };
     await useSessionStore.getState().addAsset(placeholder);
-
     try {
       const metaResult = await fetchUrlMetadataAction(raw);
       if (!metaResult.success) throw new Error(metaResult.error);
-
       const { title, description, imageUrl, domain, url } = metaResult.data;
       await useSessionStore.getState().addAsset({
         ...placeholder,
@@ -199,73 +179,55 @@ function CanvasInner() {
       });
     } catch (err) {
       console.error("URL ingest failed:", err);
-      await useSessionStore.getState().addAsset({
-        ...placeholder,
-        metadata: { loadingStatus: "error" },
-      });
+      await useSessionStore.getState().addAsset({ ...placeholder, metadata: { loadingStatus: "error" } });
     }
   }, []);
 
-  // ─── Drag-and-drop ───
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
     setIsDragging(true);
   }, []);
 
-  const onDragLeave = useCallback(() => {
-    setIsDragging(false);
-  }, []);
+  const onDragLeave = useCallback(() => setIsDragging(false), []);
 
   const onDrop = useCallback(
     async (event: React.DragEvent) => {
       event.preventDefault();
       setIsDragging(false);
-
       const file = event.dataTransfer.files?.[0];
       if (!file?.type.startsWith("image/")) return;
-
       const pos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
       await ingestImage(file, pos);
     },
     [screenToFlowPosition, ingestImage]
   );
 
-  // ─── Clipboard paste ───
   useEffect(() => {
     const handlePaste = async (event: ClipboardEvent) => {
       const target = event.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
-
       const cd = event.clipboardData;
       if (!cd) return;
 
-      // 1. Image from clipboard (screenshot or copy image)
       const imageItem = Array.from(cd.items).find((item) => item.type.startsWith("image/"));
       if (imageItem) {
         event.preventDefault();
         const file = imageItem.getAsFile();
-        if (file) {
-          const pos = pastePosition();
-          await ingestImage(file, pos);
-          return;
-        }
+        if (file) { await ingestImage(file, pastePosition()); return; }
       }
 
-      // 2. Text: URL or plain text note
       const text = cd.getData("text/plain").trim();
       if (!text) return;
-
       event.preventDefault();
       const pos = pastePosition();
       const sessionId = getSessionId();
       if (!sessionId) return;
 
-      const isUrl = /^https?:\/\//i.test(text) || /^www\./i.test(text);
-      if (isUrl) {
+      if (/^https?:\/\//i.test(text) || /^www\./i.test(text)) {
         await ingestUrl(text, pos);
       } else {
-        const newAsset: Asset = {
+        await useSessionStore.getState().addAsset({
           id: crypto.randomUUID(),
           sessionId,
           type: "text" as const,
@@ -273,11 +235,9 @@ function CanvasInner() {
           metadata: { loadingStatus: "idle" },
           canvasPosition: pos,
           createdAt: new Date().toISOString(),
-        };
-        await useSessionStore.getState().addAsset(newAsset);
+        });
       }
     };
-
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
   }, [pastePosition, ingestImage, ingestUrl]);
@@ -292,19 +252,19 @@ function CanvasInner() {
     >
       {isDragging && (
         <div className="absolute inset-0 z-50 bg-[rgba(201,148,74,0.08)] border-2 border-dashed border-[rgba(201,148,74,0.50)] flex items-center justify-center pointer-events-none">
-          <p className="text-sm tracking-[0.12em] uppercase text-sb-accent font-medium">
-            Drop image to add
-          </p>
+          <p className="text-sm tracking-[0.12em] uppercase text-sb-accent font-medium">Drop image to add</p>
         </div>
       )}
 
-      {/* Workspace name — top left */}
-      <div className="absolute top-4 left-4 z-10 pointer-events-none select-none">
-        {session?.title && (
-          <p className="text-[10px] tracking-[0.14em] uppercase text-sb-text-muted">
-            {session.title}
-          </p>
-        )}
+      {/* Workspace name / back link — top left */}
+      <div className="absolute top-4 left-4 z-10">
+        <Link
+          href="/"
+          className="flex items-center gap-1.5 text-[10px] tracking-[0.14em] uppercase text-sb-text-muted hover:text-sb-text-secondary transition-colors"
+        >
+          <span>←</span>
+          {session?.title && <span>{session.title}</span>}
+        </Link>
       </div>
 
       {/* Toolbar — top right */}
@@ -318,12 +278,12 @@ function CanvasInner() {
               onChange={(e) => setUrlInput(e.target.value)}
               onKeyDown={(e) => e.key === "Escape" && setUrlInputOpen(false)}
               placeholder="https://..."
-              className="px-3 py-2 bg-sb-surface-1 border border-[rgba(255,255,255,0.08)] rounded text-sb-text-primary text-xs w-52 outline-none focus:border-[rgba(201,148,74,0.40)] placeholder-sb-text-muted transition-colors"
+              className="px-3 py-2 bg-sb-surface-1 border border-sb-border rounded text-sb-text-primary text-xs w-52 outline-none focus:border-[rgba(201,148,74,0.40)] placeholder-sb-text-muted transition-colors"
             />
             <button
               type="submit"
               disabled={urlLoading}
-              className="px-3 py-2 bg-sb-surface-1 text-sb-text-primary border border-[rgba(255,255,255,0.08)] rounded hover:border-[rgba(255,255,255,0.14)] transition-colors text-xs disabled:opacity-40"
+              className="px-3 py-2 bg-sb-surface-1 text-sb-text-primary border border-sb-border rounded hover:border-sb-border-hover transition-colors text-xs disabled:opacity-40"
             >
               {urlLoading ? "…" : "Add"}
             </button>
@@ -331,16 +291,17 @@ function CanvasInner() {
         )}
         <button
           onClick={() => setUrlInputOpen((v) => !v)}
-          className="px-3 py-2 bg-sb-surface-1 text-sb-text-secondary border border-[rgba(255,255,255,0.08)] rounded hover:border-[rgba(255,255,255,0.14)] hover:text-sb-text-primary transition-colors text-xs"
+          className="px-3 py-2 bg-sb-surface-1 text-sb-text-muted border border-sb-border rounded hover:border-sb-border-hover hover:text-sb-text-primary transition-colors text-xs"
         >
           + URL
         </button>
         <button
           onClick={handleAddText}
-          className="px-3 py-2 bg-sb-surface-1 text-sb-text-secondary border border-[rgba(255,255,255,0.08)] rounded hover:border-[rgba(255,255,255,0.14)] hover:text-sb-text-primary transition-colors text-xs"
+          className="px-3 py-2 bg-sb-surface-1 text-sb-text-muted border border-sb-border rounded hover:border-sb-border-hover hover:text-sb-text-primary transition-colors text-xs"
         >
           + Text note
         </button>
+        <ThemeToggle />
       </div>
 
       <ReactFlow
@@ -348,15 +309,9 @@ function CanvasInner() {
         onNodesChange={handleNodesChange}
         nodeTypes={nodeTypes}
         fitView
-        style={{ background: "#100F0E" }}
-        colorMode="dark"
+        style={{ background: "var(--sb-base)" }}
       >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={28}
-          size={1}
-          color="rgba(255,255,255,0.08)"
-        />
+        <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgba(255,255,255,0.08)" />
         <Controls />
       </ReactFlow>
     </div>

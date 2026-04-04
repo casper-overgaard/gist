@@ -60,7 +60,7 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
   if (questions.length === 0) {
     return (
       <div className="flex flex-col h-full">
-        <div className="px-4 py-3.5 border-b border-[rgba(255,255,255,0.06)]">
+        <div className="px-4 py-3.5 border-b border-sb-border-subtle">
           <p className="text-[10px] tracking-[0.15em] uppercase font-medium text-sb-accent opacity-70">
             Clarify Direction
           </p>
@@ -85,7 +85,7 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3.5 border-b border-[rgba(255,255,255,0.06)] flex items-center justify-between">
+      <div className="px-4 py-3.5 border-b border-sb-border-subtle flex items-center justify-between">
         <div>
           <p className="text-[10px] tracking-[0.15em] uppercase font-medium text-sb-accent opacity-70">
             Clarify Direction
@@ -97,7 +97,7 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
         <button
           onClick={handleSynthesize}
           disabled={isSynthesizing}
-          className="text-[10px] tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-[rgba(255,255,255,0.08)] text-sb-text-muted hover:text-sb-text-primary hover:border-[rgba(255,255,255,0.14)] transition-colors disabled:opacity-30"
+          className="text-[10px] tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors disabled:opacity-30"
         >
           {isSynthesizing ? "…" : "Re-run"}
         </button>

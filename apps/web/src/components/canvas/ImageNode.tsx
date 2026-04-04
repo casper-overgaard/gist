@@ -21,11 +21,10 @@ export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
 
   const borderClass = selected
     ? "border-[rgba(201,148,74,0.35)]"
-    : "border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.14)]";
+    : "border-sb-border hover:border-sb-border-hover";
 
   return (
     <div className={`bg-sb-surface-1 border rounded max-w-[300px] relative group overflow-hidden transition-colors ${borderClass}`}>
-      {/* Confidence thread */}
       {analysis && (
         <div
           className="absolute left-0 top-0 bottom-0 w-0.5 z-10"
@@ -35,47 +34,41 @@ export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
 
       <button
         onClick={() => removeAsset(asset.id)}
-        className="absolute top-1.5 right-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-sb-text-muted hover:text-sb-destructive hover:bg-[rgba(0,0,0,0.40)] text-sm leading-none"
+        className="absolute top-1.5 right-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-sb-text-muted hover:text-sb-destructive hover:bg-[rgba(0,0,0,0.35)] text-sm leading-none"
         title="Remove"
       >
         ×
       </button>
 
-      {/* Type label */}
-      <div className={`absolute top-1.5 left-3 z-10 transition-opacity ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
-        <p className="text-[9px] tracking-[0.14em] uppercase text-sb-text-muted">Image</p>
+      <div className={`absolute top-1.5 left-3 z-10 transition-opacity ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-60"}`}>
+        <p className="text-[9px] tracking-[0.14em] uppercase font-medium text-sb-text-muted">Image</p>
       </div>
 
       <Handle type="target" position={Position.Top} className="opacity-0" />
 
       {loadingStatus === "uploading" && (
         <div className="flex items-center justify-center p-6 min-h-[100px] animate-pulse">
-          <p className="text-[9px] tracking-[0.12em] uppercase text-sb-text-muted">Uploading…</p>
+          <p className="text-[9px] tracking-[0.12em] uppercase font-medium text-sb-text-muted">Uploading…</p>
         </div>
       )}
 
       {imageUrl && loadingStatus !== "uploading" && (
-        <img
-          src={imageUrl}
-          alt="Canvas asset"
-          className="w-full h-auto object-cover"
-          draggable={false}
-        />
+        <img src={imageUrl} alt="Canvas asset" className="w-full h-auto object-cover" draggable={false} />
       )}
 
       {loadingStatus === "analyzing" && (
-        <div className="px-3 py-2">
-          <p className="text-[9px] tracking-[0.12em] uppercase text-sb-accent opacity-60 animate-pulse">
+        <div className="px-3 py-2.5">
+          <p className="text-[9px] tracking-[0.12em] uppercase font-medium text-sb-accent opacity-60 animate-pulse">
             Extracting signals…
           </p>
         </div>
       )}
 
       {loadingStatus === "idle" && (
-        <div className="px-3 py-2">
+        <div className="px-3 py-2.5">
           <button
             onClick={() => triggerAnalysis(asset)}
-            className="text-[9px] tracking-[0.10em] uppercase text-sb-accent px-2 py-1 rounded border border-[rgba(201,148,74,0.25)] hover:border-[rgba(201,148,74,0.50)] opacity-70 hover:opacity-100 transition-all"
+            className="text-[9px] tracking-[0.10em] uppercase font-medium text-sb-accent px-2 py-1 rounded border border-[rgba(201,148,74,0.22)] hover:border-[rgba(201,148,74,0.50)] opacity-60 hover:opacity-100 transition-all"
           >
             Analyze
           </button>
@@ -83,12 +76,9 @@ export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
       )}
 
       {analysis?.tags && analysis.tags.length > 0 && (
-        <div className="px-2 pb-2 flex flex-wrap gap-1">
+        <div className="px-2 pb-2 pt-1 flex flex-wrap gap-1">
           {analysis.tags.slice(0, 4).map((tag: string) => (
-            <span
-              key={tag}
-              className="text-[9px] tracking-[0.12em] uppercase bg-sb-base text-sb-text-muted px-1.5 py-0.5 rounded border border-[rgba(255,255,255,0.06)]"
-            >
+            <span key={tag} className="text-[9px] tracking-[0.12em] uppercase font-medium bg-sb-base text-sb-text-muted px-1.5 py-0.5 rounded border border-sb-border-subtle">
               {tag}
             </span>
           ))}

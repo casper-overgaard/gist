@@ -1,30 +1,59 @@
 @import "tailwindcss";
 
+/* ─── Dark mode (default) ─── */
 :root {
   --sb-base: #100F0E;
   --sb-surface-1: #1A1816;
   --sb-surface-2: #231F1B;
-  --sb-border: rgba(255, 255, 255, 0.06);
-  --sb-border-hover: rgba(255, 255, 255, 0.10);
-  --sb-border-emphasis: rgba(255, 255, 255, 0.14);
+
+  --sb-border-subtle: rgba(255, 255, 255, 0.05);
+  --sb-border: rgba(255, 255, 255, 0.08);
+  --sb-border-hover: rgba(255, 255, 255, 0.13);
+  --sb-border-emphasis: rgba(255, 255, 255, 0.18);
+
   --sb-text-primary: #F0EBE3;
   --sb-text-secondary: #A39888;
   --sb-text-muted: #5C524A;
+
   --sb-accent: #C9944A;
-  --sb-accent-soft: rgba(201, 148, 74, 0.12);
-  --sb-accent-dim: rgba(201, 148, 74, 0.45);
   --sb-destructive: #C45050;
+}
+
+/* ─── Light mode ─── */
+[data-theme="light"] {
+  --sb-base: #F5F0EA;
+  --sb-surface-1: #FFFCF8;
+  --sb-surface-2: #EDE7DF;
+
+  --sb-border-subtle: rgba(0, 0, 0, 0.05);
+  --sb-border: rgba(0, 0, 0, 0.07);
+  --sb-border-hover: rgba(0, 0, 0, 0.12);
+  --sb-border-emphasis: rgba(0, 0, 0, 0.17);
+
+  --sb-text-primary: #1C1814;
+  --sb-text-secondary: #5C4E42;
+  --sb-text-muted: #9B8878;
+
+  --sb-accent: #B8822C;
+  --sb-destructive: #B84040;
 }
 
 @theme inline {
   --color-sb-base: var(--sb-base);
   --color-sb-surface-1: var(--sb-surface-1);
   --color-sb-surface-2: var(--sb-surface-2);
+
+  --color-sb-border-subtle: var(--sb-border-subtle);
+  --color-sb-border: var(--sb-border);
+  --color-sb-border-hover: var(--sb-border-hover);
+  --color-sb-border-emphasis: var(--sb-border-emphasis);
+
   --color-sb-text-primary: var(--sb-text-primary);
   --color-sb-text-secondary: var(--sb-text-secondary);
   --color-sb-text-muted: var(--sb-text-muted);
   --color-sb-accent: var(--sb-accent);
   --color-sb-destructive: var(--sb-destructive);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -41,6 +70,15 @@ body {
   background: var(--sb-base);
 }
 
+/* Dot grid adapts to theme */
+.react-flow__background circle {
+  fill: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .react-flow__background circle {
+  fill: rgba(0, 0, 0, 0.10) !important;
+}
+
 .react-flow__controls {
   background: var(--sb-surface-1);
   border: 1px solid var(--sb-border-emphasis);
@@ -51,7 +89,7 @@ body {
 
 .react-flow__controls-button {
   background: var(--sb-surface-1);
-  border-bottom: 1px solid var(--sb-border);
+  border-bottom: 1px solid var(--sb-border-subtle);
   fill: var(--sb-text-secondary);
   width: 24px;
   height: 24px;

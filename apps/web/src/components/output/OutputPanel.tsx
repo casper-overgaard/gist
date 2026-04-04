@@ -76,7 +76,7 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3.5 border-b border-[rgba(255,255,255,0.06)] flex items-center justify-between">
+      <div className="px-4 py-3.5 border-b border-sb-border-subtle flex items-center justify-between">
         <div>
           <p className="text-[10px] tracking-[0.15em] uppercase font-medium text-sb-accent opacity-70">
             Direction Brief
@@ -91,7 +91,7 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
           {latestOutput && (
             <button
               onClick={handleExport}
-              className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-[rgba(255,255,255,0.08)] text-sb-text-muted hover:text-sb-text-primary hover:border-[rgba(255,255,255,0.14)] transition-colors"
+              className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors"
             >
               Export .md
             </button>
@@ -99,7 +99,7 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
           <button
             onClick={handleGenerate}
             disabled={isGeneratingOutput || !canGenerate}
-            className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-[rgba(255,255,255,0.08)] text-sb-text-muted hover:text-sb-text-primary hover:border-[rgba(255,255,255,0.14)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {isGeneratingOutput ? "…" : latestOutput ? "Re-generate" : "Generate"}
           </button>
@@ -115,7 +115,7 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
               className={`text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded transition-colors ${
                 session.selectedOutputType === type
                   ? "bg-[rgba(201,148,74,0.14)] text-sb-accent border border-[rgba(201,148,74,0.30)]"
-                  : "border border-[rgba(255,255,255,0.06)] text-sb-text-muted hover:text-sb-text-primary hover:border-[rgba(255,255,255,0.12)]"
+                  : "border border-sb-border-subtle text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover"
               }`}
             >
               {type === "UI/Product Style Direction" ? "UI / Product" : "Brand / Visual"}
