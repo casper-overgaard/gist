@@ -37,7 +37,18 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
 
       const pinnedSignals = assets.flatMap((a) => a.metadata?.pinnedSignals ?? []);
 
-      const result = await synthesizeSessionAction(sessionId, analyses, pinnedSignals);
+      const assetAnnotations = assets
+        .filter((a) => a.metadata?.annotation?.trim())
+        .map((a) => ({
+          assetType: a.type,
+          label: (a.metadata?.urlMeta as { title?: string; domain?: string } | undefined)?.title
+            || (a.metadata?.urlMeta as { title?: string; domain?: string } | undefined)?.domain
+            || a.source
+            || a.type,
+          annotation: (a.metadata?.annotation ?? "") as string,
+        }));
+
+      const result = await synthesizeSessionAction(sessionId, analyses, pinnedSignals, assetAnnotations);
       if (!result.success || !result.data) throw new Error(result.error);
 
       const synthesis = result.data;

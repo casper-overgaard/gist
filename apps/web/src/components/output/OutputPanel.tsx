@@ -67,6 +67,17 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
 
       const pinnedSignals = assets.flatMap((a) => a.metadata?.pinnedSignals ?? []);
 
+      const assetAnnotations = assets
+        .filter((a) => a.metadata?.annotation?.trim())
+        .map((a) => ({
+          assetType: a.type as string,
+          label: (a.metadata?.urlMeta as { title?: string; domain?: string } | undefined)?.title
+            || (a.metadata?.urlMeta as { title?: string; domain?: string } | undefined)?.domain
+            || a.source
+            || a.type,
+          annotation: (a.metadata?.annotation ?? "") as string,
+        }));
+
       const result = await generateOutputAction({
         sessionId,
         synthesis: {
@@ -76,6 +87,7 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
         answeredPairs,
         allSignals,
         pinnedSignals,
+        assetAnnotations,
         userIntent: intentDraft,
         version: outputs.length + 1,
       });
@@ -90,9 +102,18 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
     }
   };
 
-  const handleCopySpec = () => {
+  const handleCopyForClaudeCode = () => {
     if (!latestOutput?.markdownBody) return;
     navigator.clipboard.writeText(latestOutput.markdownBody).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleCopyForCursor = () => {
+    if (!latestOutput?.markdownBody) return;
+    const wrapped = `<rules>\n${latestOutput.markdownBody}\n</rules>`;
+    navigator.clipboard.writeText(wrapped).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -104,7 +125,7 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${session?.title ?? "direction"}-design.md`;
+    a.download = `CLAUDE.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -126,16 +147,25 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
           {latestOutput && (
             <>
               <button
-                onClick={handleCopySpec}
+                onClick={handleCopyForClaudeCode}
+                title="Copy as CLAUDE.md instructions for Claude Code"
                 className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors"
               >
-                {copied ? "Copied" : "Copy spec"}
+                {copied ? "Copied" : "Claude Code"}
+              </button>
+              <button
+                onClick={handleCopyForCursor}
+                title="Copy wrapped in <rules> block for Cursor"
+                className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors"
+              >
+                Cursor
               </button>
               <button
                 onClick={handleExportSpec}
+                title="Export as CLAUDE.md"
                 className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors"
               >
-                Export .md
+                Export
               </button>
             </>
           )}

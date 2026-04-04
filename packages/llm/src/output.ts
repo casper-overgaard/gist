@@ -2,6 +2,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { defaultModel } from "./openrouter";
 import { OutputDocument } from "@signalboard/domain";
+import { AssetAnnotation } from "./synthesis";
 
 const DesignSpecOutputSchema = z.object({
   humanBrief: z.object({
@@ -22,83 +23,92 @@ const DesignSpecOutputSchema = z.object({
 type AnsweredPair = { question: string; answer: string };
 
 const SYSTEM_PROMPT = `You are a creative director producing a design specification for a software project.
-The output will be used directly by an AI coding assistant (Claude Code, Codex, Cursor) as a design system reference.
-Both outputs must be grounded entirely in the specific signals provided — no generic design advice, no filler.
+The output will be consumed directly by an AI coding assistant (Claude Code, Codex, Cursor) as a project design spec.
+Both outputs must be grounded entirely in the specific signals and annotations provided — no generic design advice, no filler.
+
+IMPORTANT: Where user annotations exist, they override inferred signals. The user has told you exactly what interests them about each reference — honour that.
 
 You will produce two things:
 
-1. humanBrief — a structured summary of the design direction for human review:
-   - directionStatement: 2–3 sentences capturing the core aesthetic direction
-   - keyDecisions: 4–6 specific design decisions, each with a rationale tied to the signals
-   - isAndIsNot: 3–5 items each — what this direction IS, and what it explicitly IS NOT
-   - confidenceNotes: honest note about any unresolved tensions or low-confidence decisions
+1. humanBrief — structured direction summary for human review:
+   - directionStatement: 2–3 sentences capturing the core direction, informed by annotations
+   - keyDecisions: 4–6 specific design decisions, each with rationale tied to signals or annotations
+   - isAndIsNot: 3–5 items each
+   - confidenceNotes: honest note about unresolved tensions or low-confidence decisions
 
-2. systemSpec — a complete markdown design.md file the developer can drop into a project.
-   Structure it exactly like this:
+2. systemSpec — a CLAUDE.md-compatible project spec file.
+   This file will be dropped into a project root where Claude Code reads it as coding instructions.
+   Format rules — these are strict:
+   - Write as imperative instructions, NOT documentation prose
+   - Every color decision: include the actual derived hex or rgba value as a Tailwind arbitrary class (e.g. \`bg-[#1A1816]\`, \`text-[#F0EBE3]\`)
+   - Every spacing decision: include the actual Tailwind class or px value
+   - Every component pattern: include the actual class string — not a description of it
+   - Short rules over paragraphs
+   - Derive actual hex values from the color signals — never use placeholder values like [value]
 
-# Design System
+   Structure the systemSpec exactly like this (use these exact section headings):
 
-## Intent
-[2–3 sentences: the user's project goal and how the signals inform the direction]
+# Design Spec
+> [1-line project intent]
 
-## Design Tokens
-\`\`\`css
-:root {
-  /* Derive actual hex/rgba values from the color signals — do not use placeholders */
-  --color-base: #[value];
-  --color-surface: #[value];
-  --color-surface-raised: #[value];
-  --color-border: rgba([r],[g],[b],0.08);
-  --color-border-hover: rgba([r],[g],[b],0.14);
-  --color-text-primary: #[value];
-  --color-text-secondary: #[value];
-  --color-text-muted: #[value];
-  --color-accent: #[value];
-}
-\`\`\`
-
-## Color Palette
-| Token | Value | Use |
-|---|---|---|
-[3–6 rows: token name, actual value, usage description derived from signals]
+## Colors
+- Base background: \`bg-[#hex]\` — [one-line rule]
+- Primary text: \`text-[#hex]\`
+- Secondary text: \`text-[#hex]\`
+- Accent / interactive: \`bg-[#hex]\` / \`text-[#hex]\` — [rule for when to use]
+- Border default: \`border-[rgba(r,g,b,0.08)]\`
+- Border hover: \`border-[rgba(r,g,b,0.14)]\`
+[add rows only where signals support them]
 
 ## Typography
-| Role | Classes | Notes |
-|---|---|---|
-[4–6 rows: role (heading/body/label/caption), Tailwind class string, note on why this fits the signals]
+- Body: \`text-[Npx] leading-[N]\` — [justification]
+- Labels: \`text-[Npx] tracking-[Nem] uppercase font-medium\`
+- Headings: \`text-[Npx] font-[weight] leading-[N]\`
+[add rows only where signals support them]
 
 ## Spacing
-Base unit: [value]px — [justify based on signals]
-[3–4 lines covering component padding, section gaps, micro-spacing]
+Base unit: [N]px
+- Component padding: \`p-3\` / \`p-4\`
+- Section gaps: \`space-y-[N]\` or \`gap-[N]\`
+[2–3 lines max]
 
 ## Component Patterns
+
 ### Buttons
-[Primary and secondary button Tailwind class patterns]
+Primary: \`[full Tailwind class string]\`
+Ghost: \`[full Tailwind class string]\`
 
 ### Cards
-[Card surface, border, padding Tailwind class pattern]
+\`[full Tailwind class string]\`
 
 ### Inputs
-[Input field Tailwind class pattern]
+\`[full Tailwind class string]\`
 
-## Guardrails
-[5–8 specific rules: "Never [X]", "Always [Y]" — tied to the signals]
-
-Be precise. Derive actual values. If a signal mentions "amber", use an actual amber hex.
-If a signal mentions "borderless ghost buttons", describe the exact class pattern.
-Every section should feel earned by the input signals.`;
+## Rules
+- Never [X] — [why]
+- Always [Y] — [why]
+[5–8 specific rules, each tied to a signal or annotation]`;
 
 function buildUserMessage(
   synthesis: { aggregateSignals: string[]; conflictingSignals: string[] },
   answeredPairs: AnsweredPair[],
   allSignals: string[],
   pinnedSignals: string[],
+  assetAnnotations: AssetAnnotation[],
   userIntent: string
 ): string {
   const lines: string[] = [];
 
   if (userIntent.trim()) {
     lines.push(`Project intent: ${userIntent}`);
+    lines.push("");
+  }
+
+  if (assetAnnotations.length > 0) {
+    lines.push("User annotations per reference (highest weight — honour these above all inferred signals):");
+    assetAnnotations.forEach((a) => {
+      lines.push(`- ${a.assetType} "${a.label}": ${a.annotation}`);
+    });
     lines.push("");
   }
 
@@ -109,7 +119,7 @@ function buildUserMessage(
   }
 
   if (pinnedSignals.length > 0) {
-    lines.push(`\nUser-pinned signals (highest weight — the user specifically called these out):\n${pinnedSignals.map((s) => `- ${s}`).join("\n")}`);
+    lines.push(`\nUser-pinned signals:\n${pinnedSignals.map((s) => `- ${s}`).join("\n")}`);
   }
 
   if (allSignals.length > 0) {
@@ -135,10 +145,18 @@ export async function generateOutput(
   answeredPairs: AnsweredPair[],
   allSignals: string[],
   pinnedSignals: string[],
+  assetAnnotations: AssetAnnotation[],
   userIntent: string,
   version: number
 ): Promise<OutputDocument> {
-  const userContent = buildUserMessage(synthesis, answeredPairs, allSignals, pinnedSignals, userIntent);
+  const userContent = buildUserMessage(
+    synthesis,
+    answeredPairs,
+    allSignals,
+    pinnedSignals,
+    assetAnnotations,
+    userIntent
+  );
 
   const result = await generateObject({
     model: defaultModel,

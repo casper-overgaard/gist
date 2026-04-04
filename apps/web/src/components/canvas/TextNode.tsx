@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Asset } from "@signalboard/domain";
 import { Handle, Position } from "@xyflow/react";
 import { useSessionStore } from "@/store/useSessionStore";
@@ -12,17 +12,20 @@ interface TextNodeProps {
 
 export default function TextNodeComponent({ data, selected }: TextNodeProps) {
   const { asset } = data;
-  const { updateAssetText, addAsset, removeAsset } = useSessionStore();
+  const { updateAssetText, addAsset, removeAsset, updateAssetAnnotation } = useSessionStore();
   const { triggerAnalysis } = useAssetAnalysis();
 
   const [isEditing, setIsEditing] = useState(false);
   const [textVal, setTextVal] = useState(asset.rawText || "");
+  const [annotationDraft, setAnnotationDraft] = useState<string>("");
+  const annotationSaved = useRef("");
 
   const analysis = asset.metadata?.analysis;
   const metadata = asset.metadata || {};
   const loadingStatus = metadata.loadingStatus as string | undefined;
   const confidence = analysis?.confidence ?? 0;
   const pinnedSignals: string[] = metadata.pinnedSignals ?? [];
+  const savedAnnotation: string = metadata.annotation ?? "";
 
   const perceptualSignals: string[] = analysis?.perceptualSignals ?? [];
   const craftSignals: string[] = analysis?.craftSignals ?? [];
@@ -32,6 +35,13 @@ export default function TextNodeComponent({ data, selected }: TextNodeProps) {
     if (!isEditing && asset.rawText !== textVal) setTextVal(asset.rawText || "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asset.rawText, isEditing]);
+
+  useEffect(() => {
+    const val = metadata.annotation ?? "";
+    setAnnotationDraft(val);
+    annotationSaved.current = val;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asset.id]);
 
   const handleBlur = async () => {
     setIsEditing(false);
@@ -107,8 +117,8 @@ export default function TextNodeComponent({ data, selected }: TextNodeProps) {
           </button>
         )}
 
-        {/* Signals — rest=hidden, hover=read-only, active=pins visible */}
-        {hasSignals && (
+        {/* Signals + annotation — rest=hidden, hover=read-only, active=editable */}
+        {(hasSignals || savedAnnotation) && (
           <div className={`border-t border-sb-border-subtle pt-2 mt-3 transition-opacity duration-150 ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
             {perceptualSignals.map((s) => (
               <div key={s} className="flex items-start gap-1.5 mb-1">
@@ -122,6 +132,26 @@ export default function TextNodeComponent({ data, selected }: TextNodeProps) {
                 {selected && <PinButton assetId={asset.id} signal={s} pinnedSignals={pinnedSignals} />}
               </div>
             ))}
+            {selected ? (
+              <textarea
+                className="nodrag mt-2 w-full bg-sb-base border border-sb-border rounded px-2.5 py-2 text-[11px] text-sb-text-secondary leading-relaxed resize-none outline-none focus:border-[rgba(201,148,74,0.40)] placeholder-sb-text-muted transition-colors"
+                rows={2}
+                placeholder="What about this is relevant? What to ignore?"
+                value={annotationDraft}
+                onChange={(e) => setAnnotationDraft(e.target.value)}
+                onBlur={() => {
+                  if (annotationDraft !== annotationSaved.current) {
+                    annotationSaved.current = annotationDraft;
+                    updateAssetAnnotation(asset.id, annotationDraft);
+                  }
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              savedAnnotation && (
+                <p className="mt-2 text-[11px] text-sb-text-muted italic leading-relaxed">"{savedAnnotation}"</p>
+              )
+            )}
           </div>
         )}
       </div>

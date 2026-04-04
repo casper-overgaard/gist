@@ -37,6 +37,7 @@ interface SessionState {
   removeAsset: (assetId: string) => Promise<void>;
   setOutputType: (sessionId: string, outputType: Session["selectedOutputType"]) => Promise<void>;
   togglePinnedSignal: (assetId: string, signal: string) => Promise<void>;
+  updateAssetAnnotation: (assetId: string, annotation: string) => Promise<void>;
   updateUserIntent: (sessionId: string, intent: string) => Promise<void>;
   writeSynthesis: (sessionId: string, synthesis: Omit<SessionSynthesis, "id" | "sessionId" | "createdAt">) => Promise<void>;
   writeQuestions: (sessionId: string, questions: ClarificationQuestion[]) => Promise<void>;
@@ -211,6 +212,18 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     });
     const assetRef = doc(db, `sessions/${session.id}/assets`, assetId);
     await updateDoc(assetRef, { "metadata.pinnedSignals": next });
+  },
+
+  updateAssetAnnotation: async (assetId: string, annotation: string) => {
+    const { session, assets } = get();
+    if (!session) return;
+    set({
+      assets: assets.map((a) =>
+        a.id === assetId ? { ...a, metadata: { ...a.metadata, annotation } } : a
+      ),
+    });
+    const assetRef = doc(db, `sessions/${session.id}/assets`, assetId);
+    await updateDoc(assetRef, { "metadata.annotation": annotation });
   },
 
   updateUserIntent: async (sessionId: string, intent: string) => {

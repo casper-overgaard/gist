@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { Asset } from "@signalboard/domain";
 import { Handle, Position } from "@xyflow/react";
 import { useSessionStore } from "@/store/useSessionStore";
@@ -11,8 +12,11 @@ interface UrlNodeProps {
 
 export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
   const { asset } = data;
-  const { removeAsset } = useSessionStore();
+  const { removeAsset, updateAssetAnnotation } = useSessionStore();
   const { triggerAnalysis } = useAssetAnalysis();
+
+  const [annotationDraft, setAnnotationDraft] = useState<string>("");
+  const annotationSaved = useRef("");
 
   const meta = asset.metadata?.urlMeta as {
     title?: string;
@@ -25,10 +29,18 @@ export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
   const loadingStatus = asset.metadata?.loadingStatus as string | undefined;
   const confidence = analysis?.confidence ?? 0;
   const pinnedSignals: string[] = asset.metadata?.pinnedSignals ?? [];
+  const savedAnnotation: string = asset.metadata?.annotation ?? "";
 
   const perceptualSignals: string[] = analysis?.perceptualSignals ?? [];
   const craftSignals: string[] = analysis?.craftSignals ?? [];
   const hasSignals = perceptualSignals.length > 0 || craftSignals.length > 0;
+
+  useEffect(() => {
+    const val = asset.metadata?.annotation ?? "";
+    setAnnotationDraft(val);
+    annotationSaved.current = val;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asset.id]);
 
   const borderClass = selected
     ? "border-[rgba(201,148,74,0.35)]"
@@ -99,8 +111,8 @@ export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
           </button>
         )}
 
-        {/* Signals — rest=hidden, hover=read-only, active=pins visible */}
-        {hasSignals && (
+        {/* Signals + annotation — rest=hidden, hover=read-only, active=editable */}
+        {(hasSignals || savedAnnotation) && (
           <div className={`border-t border-sb-border-subtle pt-2 mt-2 transition-opacity duration-150 ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
             {perceptualSignals.map((s) => (
               <div key={s} className="flex items-start gap-1.5 mb-1">
@@ -114,6 +126,26 @@ export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
                 {selected && <PinButton assetId={asset.id} signal={s} pinnedSignals={pinnedSignals} />}
               </div>
             ))}
+            {selected ? (
+              <textarea
+                className="nodrag mt-2 w-full bg-sb-base border border-sb-border rounded px-2.5 py-2 text-[11px] text-sb-text-secondary leading-relaxed resize-none outline-none focus:border-[rgba(201,148,74,0.40)] placeholder-sb-text-muted transition-colors"
+                rows={2}
+                placeholder="What about this is relevant? What to ignore?"
+                value={annotationDraft}
+                onChange={(e) => setAnnotationDraft(e.target.value)}
+                onBlur={() => {
+                  if (annotationDraft !== annotationSaved.current) {
+                    annotationSaved.current = annotationDraft;
+                    updateAssetAnnotation(asset.id, annotationDraft);
+                  }
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              savedAnnotation && (
+                <p className="mt-2 text-[11px] text-sb-text-muted italic leading-relaxed">"{savedAnnotation}"</p>
+              )
+            )}
           </div>
         )}
       </div>

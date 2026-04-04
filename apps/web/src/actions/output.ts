@@ -1,7 +1,7 @@
 "use server";
 import * as Sentry from "@sentry/nextjs";
 
-import { generateOutput } from "@signalboard/llm";
+import { generateOutput, AssetAnnotation } from "@signalboard/llm";
 import { OutputDocument } from "@signalboard/domain";
 
 interface GenerateOutputParams {
@@ -13,6 +13,7 @@ interface GenerateOutputParams {
   answeredPairs: Array<{ question: string; answer: string }>;
   allSignals: string[];
   pinnedSignals: string[];
+  assetAnnotations: AssetAnnotation[];
   userIntent: string;
   version: number;
 }
@@ -27,6 +28,7 @@ export async function generateOutputAction(
       params.answeredPairs,
       params.allSignals,
       params.pinnedSignals,
+      params.assetAnnotations,
       params.userIntent,
       params.version
     );

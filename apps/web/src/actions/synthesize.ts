@@ -1,16 +1,17 @@
 "use server";
 import * as Sentry from "@sentry/nextjs";
 
-import { synthesizeSession } from "@signalboard/llm";
+import { synthesizeSession, AssetAnnotation } from "@signalboard/llm";
 import { AssetAnalysis } from "@signalboard/domain";
 
 export async function synthesizeSessionAction(
   sessionId: string,
   analyses: AssetAnalysis[],
-  pinnedSignals: string[] = []
+  pinnedSignals: string[] = [],
+  assetAnnotations: AssetAnnotation[] = []
 ) {
   try {
-    const synthesis = await synthesizeSession(sessionId, analyses, pinnedSignals);
+    const synthesis = await synthesizeSession(sessionId, analyses, pinnedSignals, assetAnnotations);
     return { success: true, data: synthesis };
   } catch (error: unknown) {
     Sentry.captureException(error instanceof Error ? error : new Error(String(error)));
