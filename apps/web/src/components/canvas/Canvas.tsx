@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   BackgroundVariant,
   Controls,
   Node,
   NodeChange,
+  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useSessionStore } from "@/store/useSessionStore";
@@ -16,7 +18,6 @@ import TextNodeComponent from "./TextNode";
 import ImageNodeComponent from "./ImageNode";
 import UrlNodeComponent from "./UrlNode";
 import { uploadAssetImage } from "@/lib/storage";
-import { analyzeAssetAction } from "@/actions/analyze";
 import { fetchUrlMetadataAction } from "@/actions/fetchUrl";
 
 const nodeTypes = {
@@ -25,9 +26,16 @@ const nodeTypes = {
   url: UrlNodeComponent,
 };
 
-export default function Canvas() {
-  const { assets, updateAssetPosition } = useSessionStore();
-  const [isDragging, setIsDragging] = React.useState(false);
+function getSessionId() {
+  return window.location.search.split("=")[1] || window.location.pathname.split("/").pop() || "";
+}
+
+function CanvasInner() {
+  const { assets, updateAssetPosition, session } = useSessionStore();
+  const { screenToFlowPosition } = useReactFlow();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const [isDragging, setIsDragging] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [urlInputOpen, setUrlInputOpen] = useState(false);
   const [urlLoading, setUrlLoading] = useState(false);
@@ -54,30 +62,40 @@ export default function Canvas() {
     [updateAssetPosition]
   );
 
+  // ─── Scatter helper for paste positioning ───
+  const pastePosition = useCallback(() => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    const cx = (rect?.left ?? 0) + (rect?.width ?? window.innerWidth) / 2;
+    const cy = (rect?.top ?? 0) + (rect?.height ?? window.innerHeight) / 2;
+    return screenToFlowPosition({
+      x: cx + (Math.random() * 140 - 70),
+      y: cy + (Math.random() * 100 - 50),
+    });
+  }, [screenToFlowPosition]);
+
+  // ─── Add text note ───
   const handleAddText = async () => {
-    if (!assets) return;
-    const newAsset = {
+    const sessionId = getSessionId();
+    if (!sessionId) return;
+    const pos = pastePosition();
+    const newAsset: Asset = {
       id: crypto.randomUUID(),
-      sessionId: assets[0]?.sessionId || "",
+      sessionId,
       type: "text" as const,
       rawText: "New idea...",
-      canvasPosition: { x: Math.random() * 200, y: Math.random() * 200 },
+      metadata: {},
+      canvasPosition: pos,
       createdAt: new Date().toISOString(),
     };
-
-    const sessionId = window.location.search.split("=")[1] || window.location.pathname.split("/").pop();
-    if (sessionId) {
-      newAsset.sessionId = sessionId;
-      await useSessionStore.getState().addAsset(newAsset);
-    }
+    await useSessionStore.getState().addAsset(newAsset);
   };
 
+  // ─── Add URL ───
   const handleAddUrl = async (e: React.FormEvent) => {
     e.preventDefault();
     const raw = urlInput.trim();
     if (!raw || urlLoading) return;
-
-    const sessionId = window.location.search.split("=")[1] || window.location.pathname.split("/").pop();
+    const sessionId = getSessionId();
     if (!sessionId) return;
 
     setUrlLoading(true);
@@ -85,6 +103,7 @@ export default function Canvas() {
     setUrlInputOpen(false);
 
     const assetId = crypto.randomUUID();
+    const pos = pastePosition();
     const placeholder: Asset = {
       id: assetId,
       sessionId,
@@ -92,7 +111,7 @@ export default function Canvas() {
       source: raw.startsWith("http") ? raw : `https://${raw}`,
       rawText: null,
       metadata: { loadingStatus: "fetching" },
-      canvasPosition: { x: Math.random() * 300 + 100, y: Math.random() * 200 + 50 },
+      canvasPosition: pos,
       createdAt: new Date().toISOString(),
     };
     await useSessionStore.getState().addAsset(placeholder);
@@ -102,26 +121,10 @@ export default function Canvas() {
       if (!metaResult.success) throw new Error(metaResult.error);
 
       const { title, description, imageUrl, domain, url } = metaResult.data;
-      const analysisText = [title, description].filter(Boolean).join(". ");
-
-      const withMeta = {
+      await useSessionStore.getState().addAsset({
         ...placeholder,
         source: url,
-        metadata: { loadingStatus: "analyzing", urlMeta: { title, description, imageUrl, domain } },
-      };
-      await useSessionStore.getState().addAsset(withMeta);
-
-      const analysisResult = analysisText
-        ? await analyzeAssetAction({ text: analysisText })
-        : { success: false };
-
-      await useSessionStore.getState().addAsset({
-        ...withMeta,
-        metadata: {
-          ...withMeta.metadata,
-          loadingStatus: "done",
-          analysis: analysisResult.success && "data" in analysisResult ? analysisResult.data : null,
-        },
+        metadata: { loadingStatus: "idle", urlMeta: { title, description, imageUrl, domain } },
       });
     } catch (err) {
       console.error("URL asset failed:", err);
@@ -134,6 +137,76 @@ export default function Canvas() {
     }
   };
 
+  // ─── Shared image ingestion (used by drop + paste) ───
+  const ingestImage = useCallback(async (file: File, pos: { x: number; y: number }) => {
+    const sessionId = getSessionId();
+    if (!sessionId) return;
+
+    const newAsset: Asset = {
+      id: crypto.randomUUID(),
+      sessionId,
+      type: "image" as const,
+      rawText: null,
+      metadata: { loadingStatus: "uploading" },
+      canvasPosition: pos,
+      createdAt: new Date().toISOString(),
+    };
+    await useSessionStore.getState().addAsset(newAsset);
+
+    try {
+      const imageUrl = await uploadAssetImage(sessionId, file);
+      await useSessionStore.getState().addAsset({
+        ...newAsset,
+        contentRef: imageUrl,
+        metadata: { loadingStatus: "idle" },
+      });
+    } catch (err) {
+      console.error("Image upload failed:", err);
+      await useSessionStore.getState().addAsset({
+        ...newAsset,
+        metadata: { loadingStatus: "error" },
+      });
+    }
+  }, []);
+
+  // ─── Shared URL text ingestion (used by paste) ───
+  const ingestUrl = useCallback(async (raw: string, pos: { x: number; y: number }) => {
+    const sessionId = getSessionId();
+    if (!sessionId) return;
+
+    const assetId = crypto.randomUUID();
+    const placeholder: Asset = {
+      id: assetId,
+      sessionId,
+      type: "url" as const,
+      source: raw.startsWith("http") ? raw : `https://${raw}`,
+      rawText: null,
+      metadata: { loadingStatus: "fetching" },
+      canvasPosition: pos,
+      createdAt: new Date().toISOString(),
+    };
+    await useSessionStore.getState().addAsset(placeholder);
+
+    try {
+      const metaResult = await fetchUrlMetadataAction(raw);
+      if (!metaResult.success) throw new Error(metaResult.error);
+
+      const { title, description, imageUrl, domain, url } = metaResult.data;
+      await useSessionStore.getState().addAsset({
+        ...placeholder,
+        source: url,
+        metadata: { loadingStatus: "idle", urlMeta: { title, description, imageUrl, domain } },
+      });
+    } catch (err) {
+      console.error("URL ingest failed:", err);
+      await useSessionStore.getState().addAsset({
+        ...placeholder,
+        metadata: { loadingStatus: "error" },
+      });
+    }
+  }, []);
+
+  // ─── Drag-and-drop ───
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
@@ -149,48 +222,69 @@ export default function Canvas() {
       event.preventDefault();
       setIsDragging(false);
 
-      const sessionId = window.location.search.split("=")[1] || window.location.pathname.split("/").pop();
-      if (!sessionId || !assets) return;
+      const file = event.dataTransfer.files?.[0];
+      if (!file?.type.startsWith("image/")) return;
 
-      const dropX = event.clientX / 2;
-      const dropY = event.clientY / 2;
+      const pos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      await ingestImage(file, pos);
+    },
+    [screenToFlowPosition, ingestImage]
+  );
 
-      if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-        const file = event.dataTransfer.files[0];
-        if (!file.type.startsWith("image/")) return;
+  // ─── Clipboard paste ───
+  useEffect(() => {
+    const handlePaste = async (event: ClipboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
 
+      const cd = event.clipboardData;
+      if (!cd) return;
+
+      // 1. Image from clipboard (screenshot or copy image)
+      const imageItem = Array.from(cd.items).find((item) => item.type.startsWith("image/"));
+      if (imageItem) {
+        event.preventDefault();
+        const file = imageItem.getAsFile();
+        if (file) {
+          const pos = pastePosition();
+          await ingestImage(file, pos);
+          return;
+        }
+      }
+
+      // 2. Text: URL or plain text note
+      const text = cd.getData("text/plain").trim();
+      if (!text) return;
+
+      event.preventDefault();
+      const pos = pastePosition();
+      const sessionId = getSessionId();
+      if (!sessionId) return;
+
+      const isUrl = /^https?:\/\//i.test(text) || /^www\./i.test(text);
+      if (isUrl) {
+        await ingestUrl(text, pos);
+      } else {
         const newAsset: Asset = {
           id: crypto.randomUUID(),
-          sessionId: sessionId,
-          type: "image" as const,
-          rawText: null,
-          metadata: { loadingStatus: "uploading" },
-          canvasPosition: { x: dropX, y: dropY },
+          sessionId,
+          type: "text" as const,
+          rawText: text,
+          metadata: { loadingStatus: "idle" },
+          canvasPosition: pos,
           createdAt: new Date().toISOString(),
-        };
-
-        await useSessionStore.getState().addAsset(newAsset);
-
-        const imageUrl = await uploadAssetImage(sessionId, file);
-
-        newAsset.contentRef = imageUrl;
-        newAsset.metadata = { loadingStatus: "analyzing" };
-        await useSessionStore.getState().addAsset(newAsset);
-
-        const analysisResult = await analyzeAssetAction({ imageUrl });
-
-        newAsset.metadata = {
-          loadingStatus: "done",
-          analysis: analysisResult.success ? analysisResult.data : null,
         };
         await useSessionStore.getState().addAsset(newAsset);
       }
-    },
-    [assets]
-  );
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [pastePosition, ingestImage, ingestUrl]);
 
   return (
     <div
+      ref={containerRef}
       className="w-full h-full relative"
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -199,11 +293,21 @@ export default function Canvas() {
       {isDragging && (
         <div className="absolute inset-0 z-50 bg-[rgba(201,148,74,0.08)] border-2 border-dashed border-[rgba(201,148,74,0.50)] flex items-center justify-center pointer-events-none">
           <p className="text-sm tracking-[0.12em] uppercase text-sb-accent font-medium">
-            Drop image to analyze
+            Drop image to add
           </p>
         </div>
       )}
 
+      {/* Workspace name — top left */}
+      <div className="absolute top-4 left-4 z-10 pointer-events-none select-none">
+        {session?.title && (
+          <p className="text-[10px] tracking-[0.14em] uppercase text-sb-text-muted">
+            {session.title}
+          </p>
+        )}
+      </div>
+
+      {/* Toolbar — top right */}
       <div className="absolute top-4 right-4 z-10 flex gap-2 items-start">
         {urlInputOpen && (
           <form onSubmit={handleAddUrl} className="flex gap-1">
@@ -256,5 +360,13 @@ export default function Canvas() {
         <Controls />
       </ReactFlow>
     </div>
+  );
+}
+
+export default function Canvas() {
+  return (
+    <ReactFlowProvider>
+      <CanvasInner />
+    </ReactFlowProvider>
   );
 }

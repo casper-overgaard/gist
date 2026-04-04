@@ -2,17 +2,24 @@ import React, { useState, useEffect } from "react";
 import { Asset } from "@signalboard/domain";
 import { Handle, Position } from "@xyflow/react";
 import { useSessionStore } from "@/store/useSessionStore";
-import { analyzeAssetAction } from "@/actions/analyze";
+import { useAssetAnalysis } from "@/hooks/useAssetAnalysis";
 
-export default function TextNodeComponent({ data }: { data: { asset: Asset } }) {
+interface TextNodeProps {
+  data: { asset: Asset };
+  selected: boolean;
+}
+
+export default function TextNodeComponent({ data, selected }: TextNodeProps) {
   const { asset } = data;
   const { updateAssetText, addAsset, removeAsset } = useSessionStore();
+  const { triggerAnalysis } = useAssetAnalysis();
 
   const [isEditing, setIsEditing] = useState(false);
   const [textVal, setTextVal] = useState(asset.rawText || "");
 
   const analysis = asset.metadata?.analysis;
   const metadata = asset.metadata || {};
+  const loadingStatus = metadata.loadingStatus as string | undefined;
   const confidence = analysis?.confidence ?? 0;
 
   useEffect(() => {
@@ -26,25 +33,22 @@ export default function TextNodeComponent({ data }: { data: { asset: Asset } }) 
     setIsEditing(false);
     if (textVal !== asset.rawText && textVal.trim() !== "") {
       await updateAssetText(asset.id, textVal);
-
-      const placeholderAuth = { ...asset, rawText: textVal, metadata: { ...metadata, loadingStatus: "analyzing" } };
-      await addAsset(placeholderAuth);
-
-      const analysisResult = await analyzeAssetAction({ text: textVal });
-
       await addAsset({
-        ...placeholderAuth,
-        metadata: {
-          ...metadata,
-          loadingStatus: "done",
-          analysis: analysisResult.success ? analysisResult.data : null,
-        },
+        ...asset,
+        rawText: textVal,
+        metadata: { ...metadata, loadingStatus: "idle" },
       });
     }
   };
 
+  const borderClass = isEditing
+    ? "border-[rgba(201,148,74,0.45)]"
+    : selected
+    ? "border-[rgba(201,148,74,0.35)]"
+    : "border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.14)]";
+
   return (
-    <div className="bg-sb-surface-1 border border-[rgba(255,255,255,0.08)] w-[240px] rounded relative group overflow-hidden">
+    <div className={`bg-sb-surface-1 border w-[240px] rounded relative group overflow-hidden transition-colors ${borderClass}`}>
       {/* Confidence thread */}
       {analysis && (
         <div
@@ -64,10 +68,15 @@ export default function TextNodeComponent({ data }: { data: { asset: Asset } }) 
       <Handle type="target" position={Position.Top} className="opacity-0" />
 
       <div className="p-4">
+        {/* Type label — visible on hover or selected */}
+        <p className={`text-[9px] tracking-[0.14em] uppercase text-sb-text-muted mb-2 transition-opacity ${selected || isEditing ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+          Note
+        </p>
+
         {isEditing ? (
           <textarea
             autoFocus
-            className="w-full bg-transparent text-sb-text-primary outline-none resize-none font-mono text-xs leading-relaxed"
+            className="w-full bg-transparent text-sb-text-primary outline-none resize-none font-mono text-sm leading-relaxed"
             value={textVal}
             onChange={(e) => setTextVal(e.target.value)}
             onBlur={handleBlur}
@@ -80,19 +89,30 @@ export default function TextNodeComponent({ data }: { data: { asset: Asset } }) 
           />
         ) : (
           <div
-            className="text-sb-text-primary whitespace-pre-wrap cursor-text min-h-[1.5rem] font-mono text-xs leading-relaxed"
+            className="text-sb-text-primary whitespace-pre-wrap cursor-text min-h-[1.5rem] font-mono text-sm leading-relaxed"
             onClick={() => setIsEditing(true)}
           >
-            {textVal || <span className="text-sb-text-muted">Click to type note…</span>}
+            {textVal || <span className="text-sb-text-muted italic">Click to type…</span>}
           </div>
         )}
 
-        {metadata.loadingStatus === "analyzing" && (
-          <p className="mt-2 text-[10px] tracking-[0.10em] uppercase text-sb-accent opacity-60 animate-pulse">
-            Analyzing…
+        {/* States */}
+        {loadingStatus === "analyzing" && (
+          <p className="mt-2 text-[9px] tracking-[0.12em] uppercase text-sb-accent opacity-60 animate-pulse">
+            Extracting signals…
           </p>
         )}
 
+        {loadingStatus === "idle" && !isEditing && (
+          <button
+            onClick={() => triggerAnalysis(asset)}
+            className="mt-3 text-[9px] tracking-[0.10em] uppercase text-sb-accent px-2 py-1 rounded border border-[rgba(201,148,74,0.25)] hover:border-[rgba(201,148,74,0.50)] hover:opacity-100 opacity-70 transition-all"
+          >
+            Analyze
+          </button>
+        )}
+
+        {/* Tags */}
         {analysis?.tags && analysis.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1 border-t border-[rgba(255,255,255,0.06)] pt-2.5">
             {analysis.tags.slice(0, 4).map((tag: string) => (

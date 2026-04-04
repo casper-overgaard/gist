@@ -1,10 +1,17 @@
 import { Asset } from "@signalboard/domain";
 import { Handle, Position } from "@xyflow/react";
 import { useSessionStore } from "@/store/useSessionStore";
+import { useAssetAnalysis } from "@/hooks/useAssetAnalysis";
 
-export default function UrlNodeComponent({ data }: { data: { asset: Asset } }) {
+interface UrlNodeProps {
+  data: { asset: Asset };
+  selected: boolean;
+}
+
+export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
   const { asset } = data;
   const { removeAsset } = useSessionStore();
+  const { triggerAnalysis } = useAssetAnalysis();
 
   const meta = asset.metadata?.urlMeta as {
     title?: string;
@@ -14,11 +21,15 @@ export default function UrlNodeComponent({ data }: { data: { asset: Asset } }) {
   } | undefined;
 
   const analysis = asset.metadata?.analysis;
-  const loadingStatus = asset.metadata?.loadingStatus;
+  const loadingStatus = asset.metadata?.loadingStatus as string | undefined;
   const confidence = analysis?.confidence ?? 0;
 
+  const borderClass = selected
+    ? "border-[rgba(201,148,74,0.35)]"
+    : "border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.14)]";
+
   return (
-    <div className="bg-sb-surface-1 border border-[rgba(255,255,255,0.08)] rounded w-[260px] relative group overflow-hidden">
+    <div className={`bg-sb-surface-1 border rounded w-[260px] relative group overflow-hidden transition-colors ${borderClass}`}>
       {/* Confidence thread */}
       {analysis && (
         <div
@@ -57,9 +68,6 @@ export default function UrlNodeComponent({ data }: { data: { asset: Asset } }) {
         {loadingStatus === "fetching" && (
           <p className="text-[10px] text-sb-text-muted animate-pulse">Fetching page…</p>
         )}
-        {loadingStatus === "analyzing" && (
-          <p className="text-[10px] text-sb-text-muted animate-pulse">Analyzing…</p>
-        )}
 
         {meta?.title && (
           <p className="text-xs text-sb-text-primary font-medium leading-snug line-clamp-2">
@@ -70,6 +78,21 @@ export default function UrlNodeComponent({ data }: { data: { asset: Asset } }) {
           <p className="text-[11px] text-sb-text-secondary mt-1 leading-snug line-clamp-2">
             {meta.description}
           </p>
+        )}
+
+        {loadingStatus === "analyzing" && (
+          <p className="mt-2 text-[9px] tracking-[0.12em] uppercase text-sb-accent opacity-60 animate-pulse">
+            Extracting signals…
+          </p>
+        )}
+
+        {loadingStatus === "idle" && meta?.title && (
+          <button
+            onClick={() => triggerAnalysis(asset)}
+            className="mt-2 text-[9px] tracking-[0.10em] uppercase text-sb-accent px-2 py-1 rounded border border-[rgba(201,148,74,0.25)] hover:border-[rgba(201,148,74,0.50)] opacity-70 hover:opacity-100 transition-all"
+          >
+            Analyze
+          </button>
         )}
 
         {analysis?.tags && analysis.tags.length > 0 && (

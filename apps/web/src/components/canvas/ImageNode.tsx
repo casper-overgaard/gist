@@ -1,17 +1,30 @@
 import { Asset } from "@signalboard/domain";
 import { Handle, Position } from "@xyflow/react";
 import { useSessionStore } from "@/store/useSessionStore";
+import { useAssetAnalysis } from "@/hooks/useAssetAnalysis";
 
-export default function ImageNodeComponent({ data }: { data: { asset: Asset } }) {
+interface ImageNodeProps {
+  data: { asset: Asset };
+  selected: boolean;
+}
+
+export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
   const { asset } = data;
   const { removeAsset } = useSessionStore();
+  const { triggerAnalysis } = useAssetAnalysis();
+
   const imageUrl = asset.contentRef || asset.source;
   const analysis = asset.metadata?.analysis;
   const metadata = asset.metadata || {};
+  const loadingStatus = metadata.loadingStatus as string | undefined;
   const confidence = analysis?.confidence ?? 0;
 
+  const borderClass = selected
+    ? "border-[rgba(201,148,74,0.35)]"
+    : "border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.14)]";
+
   return (
-    <div className="bg-sb-surface-1 border border-[rgba(255,255,255,0.08)] rounded max-w-[300px] relative group overflow-hidden">
+    <div className={`bg-sb-surface-1 border rounded max-w-[300px] relative group overflow-hidden transition-colors ${borderClass}`}>
       {/* Confidence thread */}
       {analysis && (
         <div
@@ -28,17 +41,20 @@ export default function ImageNodeComponent({ data }: { data: { asset: Asset } })
         ×
       </button>
 
+      {/* Type label */}
+      <div className={`absolute top-1.5 left-3 z-10 transition-opacity ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+        <p className="text-[9px] tracking-[0.14em] uppercase text-sb-text-muted">Image</p>
+      </div>
+
       <Handle type="target" position={Position.Top} className="opacity-0" />
 
-      {metadata.loadingStatus !== "done" && metadata.loadingStatus && (
+      {loadingStatus === "uploading" && (
         <div className="flex items-center justify-center p-6 min-h-[100px] animate-pulse">
-          <p className="text-[10px] tracking-[0.12em] uppercase text-sb-text-muted">
-            {metadata.loadingStatus === "uploading" ? "Uploading…" : "Analyzing…"}
-          </p>
+          <p className="text-[9px] tracking-[0.12em] uppercase text-sb-text-muted">Uploading…</p>
         </div>
       )}
 
-      {imageUrl && metadata.loadingStatus !== "uploading" && (
+      {imageUrl && loadingStatus !== "uploading" && (
         <img
           src={imageUrl}
           alt="Canvas asset"
@@ -47,8 +63,27 @@ export default function ImageNodeComponent({ data }: { data: { asset: Asset } })
         />
       )}
 
+      {loadingStatus === "analyzing" && (
+        <div className="px-3 py-2">
+          <p className="text-[9px] tracking-[0.12em] uppercase text-sb-accent opacity-60 animate-pulse">
+            Extracting signals…
+          </p>
+        </div>
+      )}
+
+      {loadingStatus === "idle" && (
+        <div className="px-3 py-2">
+          <button
+            onClick={() => triggerAnalysis(asset)}
+            className="text-[9px] tracking-[0.10em] uppercase text-sb-accent px-2 py-1 rounded border border-[rgba(201,148,74,0.25)] hover:border-[rgba(201,148,74,0.50)] opacity-70 hover:opacity-100 transition-all"
+          >
+            Analyze
+          </button>
+        </div>
+      )}
+
       {analysis?.tags && analysis.tags.length > 0 && (
-        <div className="p-2 flex flex-wrap gap-1">
+        <div className="px-2 pb-2 flex flex-wrap gap-1">
           {analysis.tags.slice(0, 4).map((tag: string) => (
             <span
               key={tag}
