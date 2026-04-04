@@ -21,7 +21,8 @@ export const AssetAnalysisSchema = z.object({
   id: z.string().uuid(),
   assetId: z.string().uuid(),
   tags: z.array(z.string()),
-  descriptiveSignals: z.array(z.string()),
+  perceptualSignals: z.array(z.string()),
+  craftSignals: z.array(z.string()),
   confidence: z.number().min(0).max(1),
   modelVersion: z.string(),
   createdAt: z.string().datetime()
@@ -45,7 +46,8 @@ export const ClarificationQuestionSchema = z.object({
   options: z.array(z.string()).optional(),
   priority: z.number(),
   status: z.enum(['pending', 'answered', 'dismissed']),
-  rationale: z.string()
+  rationale: z.string(),
+  sourceSignals: z.array(z.string()).optional()
 });
 
 export const ClarificationAnswerSchema = z.object({
@@ -59,7 +61,7 @@ export const ClarificationAnswerSchema = z.object({
 export const OutputDocumentSchema = z.object({
   id: z.string().uuid(),
   sessionId: z.string().uuid(),
-  outputType: z.enum(['UI/Product Style Direction', 'Brand/Visual Direction Brief']),
+  outputType: z.enum(['UI/Product Style Direction', 'Brand/Visual Direction Brief', 'Design Spec']),
   version: z.number(),
   structuredPayload: z.record(z.string(), z.any()), // Can be refined further based on output type
   markdownBody: z.string(),
@@ -73,7 +75,7 @@ export const SessionSchema = z.object({
   updatedAt: z.string().datetime(),
   title: z.string(),
   userIntent: z.string().optional(),
-  selectedOutputType: z.enum(['UI/Product Style Direction', 'Brand/Visual Direction Brief']),
+  selectedOutputType: z.enum(['UI/Product Style Direction', 'Brand/Visual Direction Brief', 'Design Spec']),
   status: z.enum(['active', 'completed', 'archived']),
   latestOutputId: z.string().uuid().nullable()
 });

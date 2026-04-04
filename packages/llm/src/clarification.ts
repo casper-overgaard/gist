@@ -2,7 +2,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { defaultModel } from "./openrouter";
 
-const MAX_QUESTIONS = 5;
+const MAX_QUESTIONS = 3;
 
 const ClarificationQuestionOutputSchema = z.object({
   questions: z.array(
@@ -11,7 +11,8 @@ const ClarificationQuestionOutputSchema = z.object({
       questionType: z.enum(["single_select", "multi_select", "free_text"]),
       options: z.array(z.string()).optional(),
       rationale: z.string(),
-      priority: z.number().min(1).max(5),
+      sourceSignals: z.array(z.string()),
+      priority: z.number().min(1).max(3),
     })
   ).max(MAX_QUESTIONS),
 });
@@ -20,7 +21,8 @@ export async function planClarificationQuestions(
   sessionId: string,
   recommendedQuestions: string[],
   aggregateSignals: string[],
-  conflictingSignals: string[]
+  conflictingSignals: string[],
+  pinnedSignals: string[] = []
 ): Promise<Array<{
   id: string;
   sessionId: string;
@@ -30,8 +32,13 @@ export async function planClarificationQuestions(
   priority: number;
   status: "pending";
   rationale: string;
+  sourceSignals: string[];
 }>> {
   if (recommendedQuestions.length === 0) return [];
+
+  const pinnedSection = pinnedSignals.length > 0
+    ? `\nPinned signals (user has marked these as particularly relevant — scope questions to these if possible):\n${pinnedSignals.map((s) => `- ${s}`).join("\n")}\n`
+    : "";
 
   const result = await generateObject({
     model: defaultModel,
@@ -42,7 +49,9 @@ export async function planClarificationQuestions(
         content: `You are a creative strategist. Convert the following clarification topics into precise, answerable questions for a design brief.
 For each question: choose the most appropriate type (single_select if 2-4 mutually exclusive options exist, multi_select if multiple can apply, free_text for open-ended nuance).
 Provide 2-4 options for select questions. Keep options distinct and actionable.
-Prioritize by impact on resolving ambiguity (1 = highest).`
+Prioritize by impact on resolving ambiguity (1 = highest).
+For each question, list the specific signals (perceptual or craft) that generated this question in sourceSignals.
+Rationale should explain which tension or gap prompted the question, referencing specific signals.${pinnedSection}`
       },
       {
         role: "user",
@@ -60,5 +69,6 @@ Prioritize by impact on resolving ambiguity (1 = highest).`
     priority: q.priority ?? i + 1,
     status: "pending" as const,
     rationale: q.rationale,
+    sourceSignals: q.sourceSignals ?? [],
   }));
 }

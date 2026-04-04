@@ -64,6 +64,18 @@ export default function QuestionCard({ question, sessionId }: QuestionCardProps)
 
   return (
     <div className="rounded border border-sb-border bg-sb-surface-1 p-3">
+      {question.sourceSignals && question.sourceSignals.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-1.5">
+          {question.sourceSignals.map((s) => (
+            <span key={s} className="text-[9px] uppercase tracking-[0.12em] bg-sb-base text-sb-text-muted px-1.5 py-0.5 rounded border border-sb-border-subtle">
+              {s}
+            </span>
+          ))}
+        </div>
+      )}
+      {question.rationale && (
+        <p className="text-[10px] text-sb-text-muted mb-2 leading-relaxed">{question.rationale}</p>
+      )}
       <p className="text-xs text-sb-text-primary mb-3 leading-relaxed">{question.prompt}</p>
 
       {(question.questionType === "single_select" || question.questionType === "multi_select") && (

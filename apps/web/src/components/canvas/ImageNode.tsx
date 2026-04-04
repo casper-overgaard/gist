@@ -2,6 +2,7 @@ import { Asset } from "@signalboard/domain";
 import { Handle, Position } from "@xyflow/react";
 import { useSessionStore } from "@/store/useSessionStore";
 import { useAssetAnalysis } from "@/hooks/useAssetAnalysis";
+import PinButton from "./PinButton";
 
 interface ImageNodeProps {
   data: { asset: Asset };
@@ -18,6 +19,11 @@ export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
   const metadata = asset.metadata || {};
   const loadingStatus = metadata.loadingStatus as string | undefined;
   const confidence = analysis?.confidence ?? 0;
+  const pinnedSignals: string[] = metadata.pinnedSignals ?? [];
+
+  const perceptualSignals: string[] = analysis?.perceptualSignals ?? [];
+  const craftSignals: string[] = analysis?.craftSignals ?? [];
+  const hasSignals = perceptualSignals.length > 0 || craftSignals.length > 0;
 
   const borderClass = selected
     ? "border-[rgba(201,148,74,0.35)]"
@@ -75,13 +81,23 @@ export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
         </div>
       )}
 
-      {analysis?.tags && analysis.tags.length > 0 && (
-        <div className="px-2 pb-2 pt-1 flex flex-wrap gap-1">
-          {analysis.tags.slice(0, 4).map((tag: string) => (
-            <span key={tag} className="text-[9px] tracking-[0.12em] uppercase font-medium bg-sb-base text-sb-text-muted px-1.5 py-0.5 rounded border border-sb-border-subtle">
-              {tag}
-            </span>
-          ))}
+      {/* Signals — rest=hidden, hover=read-only, active=pins visible */}
+      {hasSignals && (
+        <div className={`px-3 pb-2.5 transition-opacity duration-150 ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+          <div className="border-t border-sb-border-subtle pt-2 mt-0.5">
+            {perceptualSignals.map((s) => (
+              <div key={s} className="flex items-start gap-1.5 mb-1">
+                <span className="text-[11px] text-sb-text-muted leading-relaxed flex-1">{s}</span>
+                {selected && <PinButton assetId={asset.id} signal={s} pinnedSignals={pinnedSignals} />}
+              </div>
+            ))}
+            {craftSignals.map((s) => (
+              <div key={s} className="flex items-start gap-1.5 mb-0.5">
+                <span className="text-[9px] text-sb-text-muted opacity-60 leading-relaxed flex-1">{s}</span>
+                {selected && <PinButton assetId={asset.id} signal={s} pinnedSignals={pinnedSignals} />}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

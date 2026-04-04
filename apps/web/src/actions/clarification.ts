@@ -7,14 +7,16 @@ export async function planClarificationQuestionsAction(
   sessionId: string,
   recommendedQuestions: string[],
   aggregateSignals: string[],
-  conflictingSignals: string[]
+  conflictingSignals: string[],
+  pinnedSignals: string[] = []
 ) {
   try {
     const questions = await planClarificationQuestions(
       sessionId,
       recommendedQuestions,
       aggregateSignals,
-      conflictingSignals
+      conflictingSignals,
+      pinnedSignals
     );
     return { success: true, data: questions };
   } catch (error: unknown) {

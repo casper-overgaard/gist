@@ -30,11 +30,14 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
           createdAt: new Date().toISOString(),
           modelVersion: a.metadata?.analysis?.modelVersion || "google/gemini-2.5-flash",
           tags: a.metadata?.analysis?.tags || [],
-          descriptiveSignals: a.metadata?.analysis?.descriptiveSignals || [],
+          perceptualSignals: a.metadata?.analysis?.perceptualSignals || [],
+          craftSignals: a.metadata?.analysis?.craftSignals || [],
           confidence: a.metadata?.analysis?.confidence || 0.5,
         }));
 
-      const result = await synthesizeSessionAction(sessionId, analyses);
+      const pinnedSignals = assets.flatMap((a) => a.metadata?.pinnedSignals ?? []);
+
+      const result = await synthesizeSessionAction(sessionId, analyses, pinnedSignals);
       if (!result.success || !result.data) throw new Error(result.error);
 
       const synthesis = result.data;
@@ -45,7 +48,8 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
           sessionId,
           synthesis.recommendedQuestions,
           synthesis.aggregateSignals,
-          synthesis.conflictingSignals
+          synthesis.conflictingSignals,
+          pinnedSignals
         );
         if (!clarResult.success || !clarResult.data) throw new Error(clarResult.error);
         await writeQuestions(sessionId, clarResult.data);

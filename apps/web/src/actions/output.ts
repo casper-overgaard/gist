@@ -6,13 +6,14 @@ import { OutputDocument } from "@signalboard/domain";
 
 interface GenerateOutputParams {
   sessionId: string;
-  outputType: "UI/Product Style Direction" | "Brand/Visual Direction Brief";
   synthesis: {
     aggregateSignals: string[];
     conflictingSignals: string[];
   };
   answeredPairs: Array<{ question: string; answer: string }>;
   allSignals: string[];
+  pinnedSignals: string[];
+  userIntent: string;
   version: number;
 }
 
@@ -22,10 +23,11 @@ export async function generateOutputAction(
   try {
     const output = await generateOutput(
       params.sessionId,
-      params.outputType,
       params.synthesis,
       params.answeredPairs,
       params.allSignals,
+      params.pinnedSignals,
+      params.userIntent,
       params.version
     );
     return { success: true, data: output };

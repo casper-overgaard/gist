@@ -36,6 +36,8 @@ interface SessionState {
   updateAssetPosition: (assetId: string, x: number, y: number, saveToDb?: boolean) => Promise<void>;
   removeAsset: (assetId: string) => Promise<void>;
   setOutputType: (sessionId: string, outputType: Session["selectedOutputType"]) => Promise<void>;
+  togglePinnedSignal: (assetId: string, signal: string) => Promise<void>;
+  updateUserIntent: (sessionId: string, intent: string) => Promise<void>;
   writeSynthesis: (sessionId: string, synthesis: Omit<SessionSynthesis, "id" | "sessionId" | "createdAt">) => Promise<void>;
   writeQuestions: (sessionId: string, questions: ClarificationQuestion[]) => Promise<void>;
   answerQuestion: (sessionId: string, answer: ClarificationAnswer) => Promise<void>;
@@ -146,7 +148,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       createdAt: now,
       updatedAt: now,
       status: "active",
-      selectedOutputType: "UI/Product Style Direction",
+      selectedOutputType: "Design Spec",
       latestOutputId: null,
     };
     const sessionRef = doc(db, "sessions", newSessionId);
@@ -191,6 +193,32 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   setOutputType: async (sessionId: string, outputType: Session["selectedOutputType"]) => {
     const sessionRef = doc(db, "sessions", sessionId);
     await updateDoc(sessionRef, { selectedOutputType: outputType, updatedAt: new Date().toISOString() });
+  },
+
+  togglePinnedSignal: async (assetId: string, signal: string) => {
+    const { session, assets } = get();
+    if (!session) return;
+    const asset = assets.find((a) => a.id === assetId);
+    if (!asset) return;
+    const current: string[] = asset.metadata?.pinnedSignals ?? [];
+    const next = current.includes(signal)
+      ? current.filter((s) => s !== signal)
+      : [...current, signal];
+    set({
+      assets: assets.map((a) =>
+        a.id === assetId ? { ...a, metadata: { ...a.metadata, pinnedSignals: next } } : a
+      ),
+    });
+    const assetRef = doc(db, `sessions/${session.id}/assets`, assetId);
+    await updateDoc(assetRef, { "metadata.pinnedSignals": next });
+  },
+
+  updateUserIntent: async (sessionId: string, intent: string) => {
+    const sessionRef = doc(db, "sessions", sessionId);
+    await updateDoc(sessionRef, { userIntent: intent, updatedAt: new Date().toISOString() });
+    set((state) => ({
+      session: state.session ? { ...state.session, userIntent: intent } : null,
+    }));
   },
 
   writeSynthesis: async (sessionId: string, synthesis: Omit<SessionSynthesis, "id" | "sessionId" | "createdAt">) => {
