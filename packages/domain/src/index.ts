@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const AssetTypeSchema = z.enum(['image', 'url', 'text']);
+export const AssetTypeSchema = z.enum(['image', 'url', 'text', 'merge', 'output']);
 
 export const AssetSchema = z.object({
   id: z.string().uuid(),
@@ -63,10 +63,36 @@ export const OutputDocumentSchema = z.object({
   sessionId: z.string().uuid(),
   outputType: z.enum(['UI/Product Style Direction', 'Brand/Visual Direction Brief', 'Design Spec']),
   version: z.number(),
-  structuredPayload: z.record(z.string(), z.any()), // Can be refined further based on output type
+  structuredPayload: z.record(z.string(), z.any()),
   markdownBody: z.string(),
   confidenceNotes: z.string(),
   createdAt: z.string().datetime()
+});
+
+export const CanvasEdgeSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  target: z.string(),
+  createdAt: z.string().datetime()
+});
+
+export const MergeTokenSchema = z.object({
+  name: z.string(),
+  value: z.string(),
+  use: z.string()
+});
+
+export const MergeClassPatternSchema = z.object({
+  component: z.string(),
+  classes: z.string()
+});
+
+export const MergeOutputSchema = z.object({
+  elementName: z.string(),
+  inferredIntent: z.string(),
+  tokens: z.array(MergeTokenSchema),
+  classPatterns: z.array(MergeClassPatternSchema),
+  rules: z.array(z.string())
 });
 
 export const SessionSchema = z.object({
@@ -77,7 +103,8 @@ export const SessionSchema = z.object({
   userIntent: z.string().optional(),
   selectedOutputType: z.enum(['UI/Product Style Direction', 'Brand/Visual Direction Brief', 'Design Spec']),
   status: z.enum(['active', 'completed', 'archived']),
-  latestOutputId: z.string().uuid().nullable()
+  latestOutputId: z.string().uuid().nullable(),
+  mergeFragments: z.array(MergeOutputSchema).optional()
 });
 
 // Infer types
@@ -87,4 +114,6 @@ export type SessionSynthesis = z.infer<typeof SessionSynthesisSchema>;
 export type ClarificationQuestion = z.infer<typeof ClarificationQuestionSchema>;
 export type ClarificationAnswer = z.infer<typeof ClarificationAnswerSchema>;
 export type OutputDocument = z.infer<typeof OutputDocumentSchema>;
+export type CanvasEdge = z.infer<typeof CanvasEdgeSchema>;
+export type MergeOutput = z.infer<typeof MergeOutputSchema>;
 export type Session = z.infer<typeof SessionSchema>;

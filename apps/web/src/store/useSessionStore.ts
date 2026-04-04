@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import {
   Asset,
+  CanvasEdge,
+  MergeOutput,
   Session,
   SessionSynthesis,
   ClarificationQuestion,
@@ -15,11 +17,13 @@ import {
   updateDoc,
   deleteDoc,
   onSnapshot,
+  arrayUnion,
 } from "firebase/firestore";
 
 interface SessionState {
   session: Session | null;
   assets: Asset[];
+  edges: CanvasEdge[];
   synthesis: SessionSynthesis | null;
   questions: ClarificationQuestion[];
   answers: ClarificationAnswer[];
@@ -39,6 +43,9 @@ interface SessionState {
   togglePinnedSignal: (assetId: string, signal: string) => Promise<void>;
   updateAssetAnnotation: (assetId: string, annotation: string) => Promise<void>;
   updateUserIntent: (sessionId: string, intent: string) => Promise<void>;
+  addEdge: (edge: CanvasEdge) => Promise<void>;
+  removeEdge: (edgeId: string) => Promise<void>;
+  addMergeFragment: (sessionId: string, fragment: MergeOutput) => Promise<void>;
   writeSynthesis: (sessionId: string, synthesis: Omit<SessionSynthesis, "id" | "sessionId" | "createdAt">) => Promise<void>;
   writeQuestions: (sessionId: string, questions: ClarificationQuestion[]) => Promise<void>;
   answerQuestion: (sessionId: string, answer: ClarificationAnswer) => Promise<void>;
@@ -50,6 +57,7 @@ interface SessionState {
 export const useSessionStore = create<SessionState>((set, get) => ({
   session: null,
   assets: [],
+  edges: [],
   synthesis: null,
   questions: [],
   answers: [],
@@ -84,6 +92,17 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         set({ assets });
       },
       (error) => set({ error: error.message })
+    );
+
+    const edgesRef = collection(db, `sessions/${sessionId}/edges`);
+    const unsubEdges = onSnapshot(
+      edgesRef,
+      (snapshot) => {
+        const edges: CanvasEdge[] = [];
+        snapshot.forEach((doc) => edges.push(doc.data() as CanvasEdge));
+        set({ edges });
+      },
+      (error) => console.error("Edges subscription error:", error)
     );
 
     const synthRef = doc(db, `sessions/${sessionId}/synthesis`, "latest");
@@ -133,6 +152,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     return () => {
       unsubSession();
       unsubAssets();
+      unsubEdges();
       unsubSynthesis();
       unsubQuestions();
       unsubAnswers();
@@ -231,6 +251,30 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     await updateDoc(sessionRef, { userIntent: intent, updatedAt: new Date().toISOString() });
     set((state) => ({
       session: state.session ? { ...state.session, userIntent: intent } : null,
+    }));
+  },
+
+  addEdge: async (edge: CanvasEdge) => {
+    const { session } = get();
+    if (!session) return;
+    const edgeRef = doc(db, `sessions/${session.id}/edges`, edge.id);
+    await setDoc(edgeRef, edge);
+  },
+
+  removeEdge: async (edgeId: string) => {
+    const { session } = get();
+    if (!session) return;
+    const edgeRef = doc(db, `sessions/${session.id}/edges`, edgeId);
+    await deleteDoc(edgeRef);
+  },
+
+  addMergeFragment: async (sessionId: string, fragment: MergeOutput) => {
+    const sessionRef = doc(db, "sessions", sessionId);
+    await updateDoc(sessionRef, { mergeFragments: arrayUnion(fragment) });
+    set((state) => ({
+      session: state.session
+        ? { ...state.session, mergeFragments: [...(state.session.mergeFragments ?? []), fragment] }
+        : null,
     }));
   },
 

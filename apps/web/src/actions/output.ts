@@ -2,7 +2,7 @@
 import * as Sentry from "@sentry/nextjs";
 
 import { generateOutput, AssetAnnotation } from "@signalboard/llm";
-import { OutputDocument } from "@signalboard/domain";
+import { OutputDocument, MergeOutput } from "@signalboard/domain";
 
 interface GenerateOutputParams {
   sessionId: string;
@@ -16,6 +16,7 @@ interface GenerateOutputParams {
   assetAnnotations: AssetAnnotation[];
   userIntent: string;
   version: number;
+  mergeFragments?: MergeOutput[];
 }
 
 export async function generateOutputAction(
@@ -30,7 +31,8 @@ export async function generateOutputAction(
       params.pinnedSignals,
       params.assetAnnotations,
       params.userIntent,
-      params.version
+      params.version,
+      params.mergeFragments ?? []
     );
     return { success: true, data: output };
   } catch (error: unknown) {

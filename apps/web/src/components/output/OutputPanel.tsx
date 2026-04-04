@@ -90,6 +90,7 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
         assetAnnotations,
         userIntent: intentDraft,
         version: outputs.length + 1,
+        mergeFragments: session.mergeFragments ?? [],
       });
 
       if (!result.success) throw new Error(result.error);

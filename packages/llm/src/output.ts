@@ -1,7 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { defaultModel } from "./openrouter";
-import { OutputDocument } from "@signalboard/domain";
+import { OutputDocument, MergeOutput } from "@signalboard/domain";
 import { AssetAnnotation } from "./synthesis";
 
 const DesignSpecOutputSchema = z.object({
@@ -95,7 +95,8 @@ function buildUserMessage(
   allSignals: string[],
   pinnedSignals: string[],
   assetAnnotations: AssetAnnotation[],
-  userIntent: string
+  userIntent: string,
+  mergeFragments: MergeOutput[]
 ): string {
   const lines: string[] = [];
 
@@ -108,6 +109,24 @@ function buildUserMessage(
     lines.push("User annotations per reference (highest weight — honour these above all inferred signals):");
     assetAnnotations.forEach((a) => {
       lines.push(`- ${a.assetType} "${a.label}": ${a.annotation}`);
+    });
+    lines.push("");
+  }
+
+  if (mergeFragments.length > 0) {
+    lines.push("Element spec fragments (user-confirmed via Merge nodes — incorporate these directly):");
+    mergeFragments.forEach((f) => {
+      lines.push(`\n### ${f.elementName}`);
+      lines.push(`Intent: ${f.inferredIntent}`);
+      if (f.tokens.length > 0) {
+        lines.push("Tokens: " + f.tokens.map((t) => `${t.name}=${t.value} (${t.use})`).join(", "));
+      }
+      if (f.classPatterns.length > 0) {
+        f.classPatterns.forEach((p) => lines.push(`${p.component}: \`${p.classes}\``));
+      }
+      if (f.rules.length > 0) {
+        f.rules.forEach((r) => lines.push(`- ${r}`));
+      }
     });
     lines.push("");
   }
@@ -147,7 +166,8 @@ export async function generateOutput(
   pinnedSignals: string[],
   assetAnnotations: AssetAnnotation[],
   userIntent: string,
-  version: number
+  version: number,
+  mergeFragments: MergeOutput[] = []
 ): Promise<OutputDocument> {
   const userContent = buildUserMessage(
     synthesis,
@@ -155,7 +175,8 @@ export async function generateOutput(
     allSignals,
     pinnedSignals,
     assetAnnotations,
-    userIntent
+    userIntent,
+    mergeFragments
   );
 
   const result = await generateObject({

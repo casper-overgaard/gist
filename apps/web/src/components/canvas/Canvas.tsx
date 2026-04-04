@@ -9,16 +9,23 @@ import {
   BackgroundVariant,
   Controls,
   Node,
+  Edge,
   NodeChange,
+  EdgeChange,
+  Connection,
   applyNodeChanges,
+  applyEdgeChanges,
+  addEdge,
   useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useSessionStore } from "@/store/useSessionStore";
-import { Asset } from "@signalboard/domain";
+import { Asset, CanvasEdge } from "@signalboard/domain";
 import TextNodeComponent from "./TextNode";
 import ImageNodeComponent from "./ImageNode";
 import UrlNodeComponent from "./UrlNode";
+import MergeNodeComponent from "./MergeNode";
+import OutputNodeComponent from "./OutputNode";
 import { uploadAssetImage } from "@/lib/storage";
 import { fetchUrlMetadataAction } from "@/actions/fetchUrl";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -27,6 +34,8 @@ const nodeTypes = {
   text: TextNodeComponent,
   image: ImageNodeComponent,
   url: UrlNodeComponent,
+  merge: MergeNodeComponent,
+  output: OutputNodeComponent,
 };
 
 function getSessionId() {
@@ -34,7 +43,7 @@ function getSessionId() {
 }
 
 function CanvasInner() {
-  const { assets, updateAssetPosition, session } = useSessionStore();
+  const { assets, edges: storedEdges, updateAssetPosition, addEdge: storeAddEdge, removeEdge: storeRemoveEdge, session } = useSessionStore();
   const { screenToFlowPosition } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -42,9 +51,10 @@ function CanvasInner() {
   const [urlInput, setUrlInput] = useState("");
   const [urlInputOpen, setUrlInputOpen] = useState(false);
   const [urlLoading, setUrlLoading] = useState(false);
-
   const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
 
+  // Sync nodes from assets, preserving selection state
   useEffect(() => {
     setNodes((prev) => {
       const prevMap = new Map(prev.map((n) => [n.id, n]));
@@ -52,11 +62,22 @@ function CanvasInner() {
         id: asset.id,
         position: { x: asset.canvasPosition?.x ?? 0, y: asset.canvasPosition?.y ?? 0 },
         data: { asset },
-        type: asset.type === "text" ? "text" : asset.type === "url" ? "url" : "image",
+        type: asset.type === "text" ? "text" : asset.type === "url" ? "url" : asset.type === "merge" ? "merge" : asset.type === "output" ? "output" : "image",
         selected: prevMap.get(asset.id)?.selected ?? false,
       }));
     });
   }, [assets]);
+
+  // Sync edges from Firestore
+  useEffect(() => {
+    setEdges(
+      storedEdges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+      }))
+    );
+  }, [storedEdges]);
 
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -68,6 +89,31 @@ function CanvasInner() {
       setNodes((prev) => applyNodeChanges(changes, prev));
     },
     [updateAssetPosition]
+  );
+
+  const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
+    // Deletions: remove from Firestore
+    changes.forEach((change) => {
+      if (change.type === "remove") {
+        storeRemoveEdge(change.id);
+      }
+    });
+    setEdges((prev) => applyEdgeChanges(changes, prev));
+  }, [storeRemoveEdge]);
+
+  const handleConnect = useCallback(
+    async (connection: Connection) => {
+      const id = crypto.randomUUID();
+      const newEdge: CanvasEdge = {
+        id,
+        source: connection.source,
+        target: connection.target,
+        createdAt: new Date().toISOString(),
+      };
+      await storeAddEdge(newEdge);
+      setEdges((prev) => addEdge({ ...connection, id }, prev));
+    },
+    [storeAddEdge]
   );
 
   const pastePosition = useCallback(() => {
@@ -90,6 +136,22 @@ function CanvasInner() {
       type: "text" as const,
       rawText: "New idea...",
       metadata: {},
+      canvasPosition: pos,
+      createdAt: new Date().toISOString(),
+    };
+    await useSessionStore.getState().addAsset(newAsset);
+  };
+
+  const handleAddMergeNode = async () => {
+    const sessionId = getSessionId();
+    if (!sessionId) return;
+    const pos = pastePosition();
+    const newAsset: Asset = {
+      id: crypto.randomUUID(),
+      sessionId,
+      type: "merge" as const,
+      rawText: null,
+      metadata: { loadingStatus: "idle" },
       canvasPosition: pos,
       createdAt: new Date().toISOString(),
     };
@@ -307,12 +369,21 @@ function CanvasInner() {
         >
           + Text note
         </button>
+        <button
+          onClick={handleAddMergeNode}
+          className="px-3 py-2 bg-sb-surface-1 text-sb-text-muted border border-sb-border rounded hover:border-sb-border-hover hover:text-sb-text-primary transition-colors text-xs"
+        >
+          + Merge
+        </button>
         <ThemeToggle />
       </div>
 
       <ReactFlow
         nodes={nodes}
+        edges={edges}
         onNodesChange={handleNodesChange}
+        onEdgesChange={handleEdgesChange}
+        onConnect={handleConnect}
         nodeTypes={nodeTypes}
         fitView
         style={{ background: "var(--sb-base)" }}
