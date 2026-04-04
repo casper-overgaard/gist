@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ReactFlow,
@@ -10,6 +10,7 @@ import {
   Controls,
   Node,
   NodeChange,
+  applyNodeChanges,
   useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -42,16 +43,20 @@ function CanvasInner() {
   const [urlInputOpen, setUrlInputOpen] = useState(false);
   const [urlLoading, setUrlLoading] = useState(false);
 
-  const nodes: Node[] = React.useMemo(
-    () =>
-      assets.map((asset) => ({
+  const [nodes, setNodes] = useState<Node[]>([]);
+
+  useEffect(() => {
+    setNodes((prev) => {
+      const prevMap = new Map(prev.map((n) => [n.id, n]));
+      return assets.map((asset) => ({
         id: asset.id,
         position: { x: asset.canvasPosition?.x ?? 0, y: asset.canvasPosition?.y ?? 0 },
         data: { asset },
         type: asset.type === "text" ? "text" : asset.type === "url" ? "url" : "image",
-      })),
-    [assets]
-  );
+        selected: prevMap.get(asset.id)?.selected ?? false,
+      }));
+    });
+  }, [assets]);
 
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -60,6 +65,7 @@ function CanvasInner() {
           updateAssetPosition(change.id, change.position.x, change.position.y, !change.dragging);
         }
       });
+      setNodes((prev) => applyNodeChanges(changes, prev));
     },
     [updateAssetPosition]
   );
