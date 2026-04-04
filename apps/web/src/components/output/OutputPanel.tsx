@@ -39,8 +39,7 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
           return { question: q.prompt, answer: answerStr };
         });
 
-      const allSignals = assets
-        .flatMap((a) => a.metadata?.analysis?.descriptiveSignals ?? []);
+      const allSignals = assets.flatMap((a) => a.metadata?.analysis?.descriptiveSignals ?? []);
 
       const result = await generateOutputAction({
         sessionId,
@@ -77,22 +76,22 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
+      <div className="px-4 py-3.5 border-b border-[rgba(255,255,255,0.06)] flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-neutral-200 tracking-wide uppercase">
+          <p className="text-[10px] tracking-[0.15em] uppercase font-medium text-sb-accent opacity-70">
             Direction Brief
-          </h2>
+          </p>
           {latestOutput && (
-            <p className="text-xs text-neutral-500 mt-0.5">
+            <p className="text-[11px] text-sb-text-muted mt-0.5">
               v{latestOutput.version} · {latestOutput.outputType}
             </p>
           )}
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-1.5 items-center">
           {latestOutput && (
             <button
               onClick={handleExport}
-              className="text-xs px-2 py-1 rounded border border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500 transition-colors"
+              className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-[rgba(255,255,255,0.08)] text-sb-text-muted hover:text-sb-text-primary hover:border-[rgba(255,255,255,0.14)] transition-colors"
             >
               Export .md
             </button>
@@ -100,38 +99,40 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
           <button
             onClick={handleGenerate}
             disabled={isGeneratingOutput || !canGenerate}
-            className="text-xs px-2 py-1 rounded border border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-[rgba(255,255,255,0.08)] text-sb-text-muted hover:text-sb-text-primary hover:border-[rgba(255,255,255,0.14)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            {isGeneratingOutput ? "..." : latestOutput ? "Re-generate" : "Generate"}
+            {isGeneratingOutput ? "…" : latestOutput ? "Re-generate" : "Generate"}
           </button>
         </div>
       </div>
 
       {session && (
-        <div className="px-4 pt-3 flex gap-2">
+        <div className="px-4 pt-3 pb-2 flex gap-1.5">
           {(["UI/Product Style Direction", "Brand/Visual Direction Brief"] as const).map((type) => (
             <button
               key={type}
               onClick={() => setOutputType(sessionId, type)}
-              className={`text-xs px-2 py-1 rounded transition-colors ${
+              className={`text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded transition-colors ${
                 session.selectedOutputType === type
-                  ? "bg-white text-black font-medium"
-                  : "border border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500"
+                  ? "bg-[rgba(201,148,74,0.14)] text-sb-accent border border-[rgba(201,148,74,0.30)]"
+                  : "border border-[rgba(255,255,255,0.06)] text-sb-text-muted hover:text-sb-text-primary hover:border-[rgba(255,255,255,0.12)]"
               }`}
             >
-              {type === "UI/Product Style Direction" ? "UI/Product" : "Brand/Visual"}
+              {type === "UI/Product Style Direction" ? "UI / Product" : "Brand / Visual"}
             </button>
           ))}
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
         {isGeneratingOutput && (
-          <p className="text-xs text-neutral-500 animate-pulse">Generating brief...</p>
+          <p className="text-[10px] tracking-[0.10em] uppercase text-sb-text-muted animate-pulse pt-3">
+            Generating brief…
+          </p>
         )}
 
         {!isGeneratingOutput && !latestOutput && (
-          <p className="text-xs text-neutral-600">
+          <p className="text-xs text-sb-text-muted pt-3 leading-relaxed">
             {canGenerate
               ? "Signals synthesized. Generate a brief when ready."
               : "Synthesize signals in the Clarify panel first."}
@@ -139,7 +140,9 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
         )}
 
         {!isGeneratingOutput && latestOutput && (
-          <OutputBody output={latestOutput} />
+          <div className="pt-3">
+            <OutputBody output={latestOutput} />
+          </div>
         )}
       </div>
     </div>
@@ -152,7 +155,7 @@ function OutputBody({ output }: { output: { outputType: string; structuredPayloa
 
   if (output.outputType === "UI/Product Style Direction") {
     return (
-      <div className="space-y-5 text-sm">
+      <div className="space-y-5">
         <Section title="Direction Summary" body={p.directionSummary} />
         <TagList title="Core Attributes" items={p.coreAttributes} />
         <TagList title="Visual Principles" items={p.visualPrinciples} />
@@ -162,9 +165,13 @@ function OutputBody({ output }: { output: { outputType: string; structuredPayloa
         <Section title="Interaction & Motion" body={p.interactionMotionCues} />
         {p.isAndIsNot && (
           <div>
-            <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">Is / Is Not</p>
-            <p className="text-neutral-300 text-xs"><span className="text-neutral-500">Is: </span>{p.isAndIsNot.is?.join(", ")}</p>
-            <p className="text-neutral-300 text-xs mt-0.5"><span className="text-neutral-500">Is not: </span>{p.isAndIsNot.isNot?.join(", ")}</p>
+            <p className="text-[9px] tracking-[0.15em] uppercase text-sb-accent opacity-60 mb-2">Is / Is Not</p>
+            <p className="text-sb-text-secondary text-xs leading-relaxed">
+              <span className="text-sb-text-muted">Is — </span>{p.isAndIsNot.is?.join(", ")}
+            </p>
+            <p className="text-sb-text-secondary text-xs leading-relaxed mt-1">
+              <span className="text-sb-text-muted">Is not — </span>{p.isAndIsNot.isNot?.join(", ")}
+            </p>
           </div>
         )}
         <TagList title="Guardrails" items={p.implementationGuardrails} />
@@ -175,7 +182,7 @@ function OutputBody({ output }: { output: { outputType: string; structuredPayloa
   }
 
   return (
-    <div className="space-y-5 text-sm">
+    <div className="space-y-5">
       <Section title="Direction Summary" body={p.directionSummary} />
       <TagList title="Brand Personality" items={p.brandPersonality} />
       <Section title="Visual Territory" body={p.visualTerritory} />
@@ -194,8 +201,8 @@ function OutputBody({ output }: { output: { outputType: string; structuredPayloa
 function Section({ title, body }: { title: string; body: string }) {
   return (
     <div>
-      <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">{title}</p>
-      <p className="text-neutral-300 leading-relaxed">{body}</p>
+      <p className="text-[9px] tracking-[0.15em] uppercase text-sb-accent opacity-60 mb-1.5">{title}</p>
+      <p className="text-sb-text-secondary text-xs leading-relaxed">{body}</p>
     </div>
   );
 }
@@ -204,11 +211,12 @@ function TagList({ title, items }: { title: string; items?: string[] }) {
   if (!items?.length) return null;
   return (
     <div>
-      <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">{title}</p>
-      <ul className="space-y-0.5">
+      <p className="text-[9px] tracking-[0.15em] uppercase text-sb-accent opacity-60 mb-1.5">{title}</p>
+      <ul className="space-y-1">
         {items.map((item, i) => (
-          <li key={i} className="text-neutral-300 text-xs before:content-['—'] before:mr-2 before:text-neutral-600">
-            {item}
+          <li key={i} className="text-sb-text-secondary text-xs flex gap-2">
+            <span className="text-sb-text-muted shrink-0 mt-px">—</span>
+            <span className="leading-relaxed">{item}</span>
           </li>
         ))}
       </ul>
@@ -218,9 +226,11 @@ function TagList({ title, items }: { title: string; items?: string[] }) {
 
 function ConfidenceNote({ note }: { note: string }) {
   return (
-    <div className="border border-neutral-700 rounded p-3 bg-neutral-900">
-      <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">Confidence Notes</p>
-      <p className="text-neutral-400 text-xs leading-relaxed">{note}</p>
+    <div className="border border-[rgba(201,148,74,0.20)] rounded p-3 bg-[rgba(201,148,74,0.05)]">
+      <p className="text-[9px] tracking-[0.15em] uppercase text-sb-accent opacity-60 mb-1.5">
+        Confidence Notes
+      </p>
+      <p className="text-sb-text-secondary text-xs leading-relaxed">{note}</p>
     </div>
   );
 }

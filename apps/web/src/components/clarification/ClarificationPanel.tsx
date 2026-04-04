@@ -22,7 +22,6 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
     setIsSynthesizing(true);
 
     try {
-      // Collect all asset analyses
       const analyses: AssetAnalysis[] = assets
         .filter((a) => a.metadata?.analysis)
         .map((a): AssetAnalysis => ({
@@ -35,21 +34,13 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
           confidence: a.metadata?.analysis?.confidence || 0.5,
         }));
 
-      // Run synthesis server action
       const result = await synthesizeSessionAction(sessionId, analyses);
       if (!result.success || !result.data) throw new Error(result.error);
 
       const synthesis = result.data;
-
-      // Persist synthesis to Firestore
       await writeSynthesis(sessionId, synthesis);
 
-      // Plan clarification questions if ambiguity is meaningful (> 0.3)
       if (synthesis.ambiguityScore > 0.3 && synthesis.recommendedQuestions.length > 0) {
-        // NOTE: planClarificationQuestions calls OpenRouter — this runs client-side here.
-        // In Wave 4 we will move this to a dedicated Server Action.
-        // For now include the key directly in the action, not directly here.
-        // We call the synthesize action which handles it server-side.
         const clarResult = await planClarificationQuestionsAction(
           sessionId,
           synthesis.recommendedQuestions,
@@ -69,9 +60,11 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
   if (questions.length === 0) {
     return (
       <div className="flex flex-col h-full">
-        <div className="p-4 border-b border-neutral-800">
-          <h2 className="text-sm font-semibold text-neutral-200 tracking-wide uppercase">Clarify Direction</h2>
-          <p className="text-xs text-neutral-500 mt-1">
+        <div className="px-4 py-3.5 border-b border-[rgba(255,255,255,0.06)]">
+          <p className="text-[10px] tracking-[0.15em] uppercase font-medium text-sb-accent opacity-70">
+            Clarify Direction
+          </p>
+          <p className="text-xs text-sb-text-muted mt-1 leading-relaxed">
             {hasAnalyzedAssets
               ? "Signals ready. Run synthesis to generate targeted questions."
               : "Add and analyze assets on the canvas first."}
@@ -81,9 +74,9 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
           <button
             onClick={handleSynthesize}
             disabled={isSynthesizing || !hasAnalyzedAssets}
-            className="px-4 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 bg-sb-accent text-sb-base text-xs font-medium rounded hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            {isSynthesizing ? "Synthesizing..." : "Synthesize Signals"}
+            {isSynthesizing ? "Synthesizing…" : "Synthesize signals"}
           </button>
         </div>
       </div>
@@ -92,29 +85,33 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
+      <div className="px-4 py-3.5 border-b border-[rgba(255,255,255,0.06)] flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-neutral-200 tracking-wide uppercase">Clarify Direction</h2>
-          <p className="text-xs text-neutral-500 mt-0.5">
+          <p className="text-[10px] tracking-[0.15em] uppercase font-medium text-sb-accent opacity-70">
+            Clarify Direction
+          </p>
+          <p className="text-[11px] text-sb-text-muted mt-0.5">
             {pendingQuestions.length} remaining · {answeredQuestions.length} answered
           </p>
         </div>
         <button
           onClick={handleSynthesize}
           disabled={isSynthesizing}
-          className="text-xs px-2 py-1 rounded border border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500 transition-colors disabled:opacity-40"
+          className="text-[10px] tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-[rgba(255,255,255,0.08)] text-sb-text-muted hover:text-sb-text-primary hover:border-[rgba(255,255,255,0.14)] transition-colors disabled:opacity-30"
         >
-          {isSynthesizing ? "..." : "Re-run"}
+          {isSynthesizing ? "…" : "Re-run"}
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {pendingQuestions.map((q) => (
           <QuestionCard key={q.id} question={q} sessionId={sessionId} />
         ))}
         {answeredQuestions.length > 0 && (
           <>
-            <p className="text-xs text-neutral-600 uppercase tracking-widest pt-2">Answered</p>
+            <p className="text-[9px] tracking-[0.16em] uppercase text-sb-text-muted pt-3 pb-1 px-1">
+              Answered
+            </p>
             {answeredQuestions.map((q) => (
               <QuestionCard key={q.id} question={q} sessionId={sessionId} />
             ))}
@@ -124,4 +121,3 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
     </div>
   );
 }
-

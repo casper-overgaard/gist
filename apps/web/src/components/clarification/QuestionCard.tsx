@@ -51,20 +51,31 @@ export default function QuestionCard({ question, sessionId }: QuestionCardProps)
     }
   };
 
-  return (
-    <div className={`rounded-lg border p-4 transition-all ${submitted ? "border-green-800 bg-green-950/30 opacity-60" : "border-neutral-700 bg-neutral-900"}`}>
-      <p className="text-sm text-neutral-200 mb-3 font-medium leading-snug">{question.prompt}</p>
+  if (submitted) {
+    return (
+      <div className="rounded border border-[rgba(255,255,255,0.06)] bg-sb-surface-1 p-3 opacity-50">
+        <p className="text-xs text-sb-text-secondary leading-snug">{question.prompt}</p>
+        <p className="text-[10px] tracking-[0.10em] uppercase text-sb-accent opacity-60 mt-2">
+          Answered
+        </p>
+      </div>
+    );
+  }
 
-      {(question.questionType === "single_select" || question.questionType === "multi_select") && !submitted && (
-        <div className="flex flex-col gap-2 mb-3">
+  return (
+    <div className="rounded border border-[rgba(255,255,255,0.08)] bg-sb-surface-1 p-3">
+      <p className="text-xs text-sb-text-primary mb-3 leading-relaxed">{question.prompt}</p>
+
+      {(question.questionType === "single_select" || question.questionType === "multi_select") && (
+        <div className="flex flex-col gap-1.5 mb-3">
           {question.options?.map((opt) => (
             <button
               key={opt}
               onClick={() => toggleOption(opt)}
               className={`text-left text-xs px-3 py-2 rounded border transition-colors ${
                 selected.includes(opt)
-                  ? "border-blue-500 bg-blue-500/20 text-blue-300"
-                  : "border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-600"
+                  ? "border-[rgba(201,148,74,0.50)] bg-[rgba(201,148,74,0.10)] text-sb-accent"
+                  : "border-[rgba(255,255,255,0.06)] bg-sb-base text-sb-text-secondary hover:border-[rgba(255,255,255,0.12)] hover:text-sb-text-primary"
               }`}
             >
               {opt}
@@ -73,27 +84,22 @@ export default function QuestionCard({ question, sessionId }: QuestionCardProps)
         </div>
       )}
 
-      {question.questionType === "free_text" && !submitted && (
+      {question.questionType === "free_text" && (
         <textarea
           value={freeText}
           onChange={(e) => setFreeText(e.target.value)}
-          placeholder="Type your answer..."
-          className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-neutral-500 resize-none mb-3"
+          placeholder="Type your answer…"
+          className="w-full bg-sb-base border border-[rgba(255,255,255,0.08)] rounded px-3 py-2 text-xs text-sb-text-primary outline-none focus:border-[rgba(201,148,74,0.40)] placeholder-sb-text-muted resize-none mb-3 transition-colors"
           rows={3}
         />
       )}
 
-      {submitted ? (
-        <p className="text-xs text-green-500">✓ Answered</p>
-      ) : (
-        <button
-          onClick={handleSubmit}
-          disabled={submitted}
-          className="text-xs px-3 py-1.5 bg-white text-black rounded hover:bg-neutral-200 transition-colors font-medium"
-        >
-          Submit
-        </button>
-      )}
+      <button
+        onClick={handleSubmit}
+        className="text-[10px] tracking-[0.08em] uppercase px-3 py-1.5 bg-sb-accent text-sb-base rounded font-medium hover:opacity-90 transition-opacity"
+      >
+        Submit
+      </button>
     </div>
   );
 }

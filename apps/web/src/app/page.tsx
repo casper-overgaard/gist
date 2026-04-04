@@ -12,7 +12,7 @@ export default function Home() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    
+
     try {
       const sessionId = await createSession(title);
       router.push(`/session?id=${sessionId}`);
@@ -22,27 +22,34 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-black text-white selection:bg-neutral-800">
-      <div className="max-w-md w-full space-y-8">
-        <div className="space-y-2 text-center">
-          <h1 className="text-4xl font-light tracking-tight">Signalboard</h1>
-          <p className="text-neutral-400">Messy inspiration into structured direction.</p>
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-sb-base selection:bg-[rgba(201,148,74,0.20)]">
+      <div className="max-w-sm w-full space-y-10">
+        <div className="space-y-3">
+          <h1 className="text-3xl font-light tracking-tight text-sb-text-primary">Signalboard</h1>
+          <p className="text-sb-text-secondary text-sm leading-relaxed">
+            Bring raw inspiration. Leave with structured direction.
+          </p>
         </div>
 
-        <form onSubmit={handleCreate} className="mt-8 space-y-4">
-          <input
-            type="text"
-            required
-            placeholder="Name your new workspace..."
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 focus:border-neutral-700 outline-none rounded-lg text-white placeholder-neutral-500 transition-colors"
-          />
+        <form onSubmit={handleCreate} className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-[10px] tracking-[0.15em] uppercase font-medium text-sb-accent opacity-70 block">
+              Workspace name
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Brand refresh, Q3 product direction..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-4 py-3 bg-sb-surface-1 border border-[rgba(255,255,255,0.08)] focus:border-[rgba(201,148,74,0.40)] outline-none rounded-lg text-sb-text-primary placeholder-sb-text-muted text-sm transition-colors"
+            />
+          </div>
           <button
             type="submit"
-            className="w-full px-4 py-3 text-sm font-medium bg-white text-black rounded-lg hover:bg-neutral-200 transition-colors"
+            className="w-full px-4 py-3 text-sm font-medium bg-sb-accent text-sb-base rounded-lg hover:opacity-90 transition-opacity"
           >
-            Create Session
+            Create workspace
           </button>
         </form>
       </div>

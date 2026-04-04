@@ -7,14 +7,14 @@ import { analyzeAssetAction } from "@/actions/analyze";
 export default function TextNodeComponent({ data }: { data: { asset: Asset } }) {
   const { asset } = data;
   const { updateAssetText, addAsset, removeAsset } = useSessionStore();
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [textVal, setTextVal] = useState(asset.rawText || "");
 
   const analysis = asset.metadata?.analysis;
   const metadata = asset.metadata || {};
+  const confidence = analysis?.confidence ?? 0;
 
-  // Sync internal state if DB changes externally
   useEffect(() => {
     if (!isEditing && asset.rawText !== textVal) {
       setTextVal(asset.rawText || "");
@@ -25,79 +25,87 @@ export default function TextNodeComponent({ data }: { data: { asset: Asset } }) 
   const handleBlur = async () => {
     setIsEditing(false);
     if (textVal !== asset.rawText && textVal.trim() !== "") {
-      // 1. Save text
       await updateAssetText(asset.id, textVal);
-      
-      // 2. Set analyzing status
-      const placeholderAuth = { ...asset, rawText: textVal, metadata: { ...metadata, loadingStatus: 'analyzing' } };
+
+      const placeholderAuth = { ...asset, rawText: textVal, metadata: { ...metadata, loadingStatus: "analyzing" } };
       await addAsset(placeholderAuth);
 
-      // 3. Analyze text
       const analysisResult = await analyzeAssetAction({ text: textVal });
-      
-      // 4. Save analysis
+
       await addAsset({
         ...placeholderAuth,
         metadata: {
           ...metadata,
-          loadingStatus: 'done',
-          analysis: analysisResult.success ? analysisResult.data : null
-        }
+          loadingStatus: "done",
+          analysis: analysisResult.success ? analysisResult.data : null,
+        },
       });
     }
   };
 
   return (
-    <div className="bg-neutral-800 border border-neutral-700 w-[240px] p-4 font-mono text-sm rounded shadow-lg relative group">
+    <div className="bg-sb-surface-1 border border-[rgba(255,255,255,0.08)] w-[240px] rounded relative group overflow-hidden">
+      {/* Confidence thread */}
+      {analysis && (
+        <div
+          className="absolute left-0 top-0 bottom-0 w-0.5"
+          style={{ backgroundColor: `rgba(201, 148, 74, ${Math.max(0.2, confidence).toFixed(2)})` }}
+        />
+      )}
+
       <button
         onClick={() => removeAsset(asset.id)}
-        className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-neutral-500 hover:text-red-400 hover:bg-neutral-700 text-xs leading-none"
+        className="absolute top-1.5 right-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center rounded text-sb-text-muted hover:text-sb-destructive hover:bg-[rgba(255,255,255,0.06)] text-sm leading-none"
         title="Remove"
       >
         ×
       </button>
+
       <Handle type="target" position={Position.Top} className="opacity-0" />
-      
-      {isEditing ? (
-        <textarea
-          autoFocus
-          className="w-full bg-transparent text-white outline-none resize-none"
-          value={textVal}
-          onChange={(e) => setTextVal(e.target.value)}
-          onBlur={handleBlur}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              e.currentTarget.blur();
-            }
-          }}
-        />
-      ) : (
-        <div 
-          className="text-white whitespace-pre-wrap cursor-text min-h-[1.5rem]"
-          onClick={() => setIsEditing(true)}
-        >
-          {textVal || "Click to type note..."}
-        </div>
-      )}
 
-      {/* Loading state rendering */}
-      {metadata.loadingStatus === 'analyzing' && (
-        <div className="mt-2 text-xs text-neutral-400 animate-pulse">
-          Analyzing note...
-        </div>
-      )}
+      <div className="p-4">
+        {isEditing ? (
+          <textarea
+            autoFocus
+            className="w-full bg-transparent text-sb-text-primary outline-none resize-none font-mono text-xs leading-relaxed"
+            value={textVal}
+            onChange={(e) => setTextVal(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
+          />
+        ) : (
+          <div
+            className="text-sb-text-primary whitespace-pre-wrap cursor-text min-h-[1.5rem] font-mono text-xs leading-relaxed"
+            onClick={() => setIsEditing(true)}
+          >
+            {textVal || <span className="text-sb-text-muted">Click to type note…</span>}
+          </div>
+        )}
 
-      {/* Display Analysis Tags */}
-      {analysis?.tags && analysis.tags.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1 border-t border-neutral-700 pt-2">
-          {analysis.tags.slice(0, 4).map((tag: string) => (
-            <span key={tag} className="text-[10px] bg-neutral-900 text-neutral-300 px-1.5 py-0.5 rounded shadow-sm border border-neutral-700 uppercase tracking-wide">
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
+        {metadata.loadingStatus === "analyzing" && (
+          <p className="mt-2 text-[10px] tracking-[0.10em] uppercase text-sb-accent opacity-60 animate-pulse">
+            Analyzing…
+          </p>
+        )}
+
+        {analysis?.tags && analysis.tags.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1 border-t border-[rgba(255,255,255,0.06)] pt-2.5">
+            {analysis.tags.slice(0, 4).map((tag: string) => (
+              <span
+                key={tag}
+                className="text-[9px] tracking-[0.12em] uppercase bg-sb-base text-sb-text-muted px-1.5 py-0.5 rounded border border-[rgba(255,255,255,0.06)]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>

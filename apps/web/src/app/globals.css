@@ -1,26 +1,71 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sb-base: #100F0E;
+  --sb-surface-1: #1A1816;
+  --sb-surface-2: #231F1B;
+  --sb-border: rgba(255, 255, 255, 0.06);
+  --sb-border-hover: rgba(255, 255, 255, 0.10);
+  --sb-border-emphasis: rgba(255, 255, 255, 0.14);
+  --sb-text-primary: #F0EBE3;
+  --sb-text-secondary: #A39888;
+  --sb-text-muted: #5C524A;
+  --sb-accent: #C9944A;
+  --sb-accent-soft: rgba(201, 148, 74, 0.12);
+  --sb-accent-dim: rgba(201, 148, 74, 0.45);
+  --sb-destructive: #C45050;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-sb-base: var(--sb-base);
+  --color-sb-surface-1: var(--sb-surface-1);
+  --color-sb-surface-2: var(--sb-surface-2);
+  --color-sb-text-primary: var(--sb-text-primary);
+  --color-sb-text-secondary: var(--sb-text-secondary);
+  --color-sb-text-muted: var(--sb-text-muted);
+  --color-sb-accent: var(--sb-accent);
+  --color-sb-destructive: var(--sb-destructive);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--sb-base);
+  color: var(--sb-text-primary);
+  font-family: var(--font-geist-sans), Arial, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ─── ReactFlow overrides ─── */
+.react-flow__renderer,
+.react-flow__pane {
+  background: var(--sb-base);
+}
+
+.react-flow__controls {
+  background: var(--sb-surface-1);
+  border: 1px solid var(--sb-border-emphasis);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.react-flow__controls-button {
+  background: var(--sb-surface-1);
+  border-bottom: 1px solid var(--sb-border);
+  fill: var(--sb-text-secondary);
+  width: 24px;
+  height: 24px;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--sb-surface-2);
+  fill: var(--sb-text-primary);
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.react-flow__attribution {
+  display: none;
 }

@@ -20,39 +20,39 @@ function SessionContent() {
 
   if (isLoading) {
     return (
-      <div className="flex bg-black text-white h-screen items-center justify-center">
-        <span className="text-sm font-medium animate-pulse">Loading Workspace...</span>
+      <div className="flex bg-sb-base text-sb-text-secondary h-screen items-center justify-center">
+        <span className="text-xs tracking-[0.12em] uppercase animate-pulse">Loading workspace…</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col gap-2 bg-black text-white h-screen items-center justify-center">
-        <span className="text-xl font-bold">Error</span>
-        <span className="text-sm text-neutral-400">{error}</span>
+      <div className="flex flex-col gap-2 bg-sb-base h-screen items-center justify-center">
+        <span className="text-sm text-sb-text-primary font-medium">Something went wrong</span>
+        <span className="text-xs text-sb-text-muted">{error}</span>
       </div>
     );
   }
 
   if (!id) {
     return (
-      <div className="flex bg-black text-white h-screen items-center justify-center">
-        <span className="text-sm text-neutral-400">No session ID provided.</span>
+      <div className="flex bg-sb-base h-screen items-center justify-center">
+        <span className="text-xs text-sb-text-muted">No session ID provided.</span>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-screen flex bg-neutral-950 text-white overflow-hidden">
+    <div className="w-full h-screen flex bg-sb-base text-sb-text-primary overflow-hidden">
       <div className="flex-1 h-full min-w-0">
         <Canvas />
       </div>
-      <div className="w-80 h-full border-l border-neutral-800 flex flex-col overflow-hidden shrink-0">
+      <div className="w-80 h-full border-l border-[rgba(255,255,255,0.06)] flex flex-col overflow-hidden shrink-0">
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           <ClarificationPanel sessionId={id} />
         </div>
-        <div className="h-px bg-neutral-800 shrink-0" />
+        <div className="h-px bg-[rgba(255,255,255,0.06)] shrink-0" />
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           <OutputPanel sessionId={id} />
         </div>
@@ -63,7 +63,7 @@ function SessionContent() {
 
 export default function SessionPage() {
   return (
-    <Suspense fallback={<div className="bg-black h-screen" />}>
+    <Suspense fallback={<div className="bg-sb-base h-screen" />}>
       <SessionContent />
     </Suspense>
   );
