@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { Asset, MergeOutput } from "@signalboard/domain";
 import { useSessionStore } from "@/store/useSessionStore";
@@ -15,9 +14,11 @@ function getSessionId() {
 export default function OutputNodeComponent({ data, selected }: OutputNodeProps) {
   const { asset } = data;
   const { removeAsset, addMergeFragment, session } = useSessionStore();
-  const [addedToBrief, setAddedToBrief] = useState(false);
 
   const mergeOutput = asset.metadata?.mergeOutput as MergeOutput | undefined;
+  const addedToBrief = (session?.mergeFragments ?? []).some(
+    (f) => f.elementName === mergeOutput?.elementName && f.inferredIntent === mergeOutput?.inferredIntent
+  );
 
   const borderClass = selected
     ? "border-[rgba(201,148,74,0.50)]"
@@ -28,7 +29,6 @@ export default function OutputNodeComponent({ data, selected }: OutputNodeProps)
     const sessionId = getSessionId();
     if (!sessionId) return;
     await addMergeFragment(sessionId, mergeOutput);
-    setAddedToBrief(true);
   };
 
   if (!mergeOutput) return null;

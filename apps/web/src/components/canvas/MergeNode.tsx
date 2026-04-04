@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 import { Asset, MergeOutput } from "@signalboard/domain";
 import { ConnectedAsset } from "@signalboard/llm";
@@ -23,13 +23,12 @@ export default function MergeNodeComponent({ data, id, selected }: MergeNodeProp
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Find assets connected to this merge node as sources
-  const connectedAssetIds = edges
-    .filter((e) => e.target === id)
-    .map((e) => e.source);
-
-  const connectedAssets = connectedAssetIds
-    .map((aid) => assets.find((a) => a.id === aid))
-    .filter((a): a is Asset => !!a && a.type !== "merge" && a.type !== "output");
+  const connectedAssets = useMemo(() => {
+    const connectedIds = edges.filter((e) => e.target === id).map((e) => e.source);
+    return connectedIds
+      .map((aid) => assets.find((a) => a.id === aid))
+      .filter((a): a is Asset => !!a && a.type !== "merge" && a.type !== "output");
+  }, [edges, assets, id]);
 
   const loadingStatus = asset.metadata?.loadingStatus as string | undefined;
   const borderClass = selected
