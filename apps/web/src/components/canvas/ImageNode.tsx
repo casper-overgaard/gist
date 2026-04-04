@@ -94,7 +94,7 @@ export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
       )}
 
       {/* Signals + annotation — rest=hidden, hover=read-only, active=editable */}
-      {(hasSignals || savedAnnotation) && (
+      {(hasSignals || savedAnnotation || selected) && (
         <div className={`px-3 pb-2.5 transition-opacity duration-150 ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
           <div className="border-t border-sb-border-subtle pt-2 mt-0.5">
             {perceptualSignals.map((s) => (

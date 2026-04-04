@@ -118,7 +118,7 @@ export default function TextNodeComponent({ data, selected }: TextNodeProps) {
         )}
 
         {/* Signals + annotation — rest=hidden, hover=read-only, active=editable */}
-        {(hasSignals || savedAnnotation) && (
+        {(hasSignals || savedAnnotation || selected) && (
           <div className={`border-t border-sb-border-subtle pt-2 mt-3 transition-opacity duration-150 ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
             {perceptualSignals.map((s) => (
               <div key={s} className="flex items-start gap-1.5 mb-1">
