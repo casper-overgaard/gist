@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
-import { Asset, MergeOutput } from "@signalboard/domain";
+import { Asset } from "@signalboard/domain";
 import { ConnectedAsset } from "@signalboard/llm";
 import { useSessionStore } from "@/store/useSessionStore";
 import { generateMergeOutputAction } from "@/actions/merge";

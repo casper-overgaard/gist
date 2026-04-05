@@ -113,7 +113,7 @@ export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
               />
             ) : (
               savedAnnotation && (
-                <p className="mt-2 text-[11px] text-sb-text-muted italic leading-relaxed">"{savedAnnotation}"</p>
+                <p className="mt-2 text-[11px] text-sb-text-muted italic leading-relaxed">&ldquo;{savedAnnotation}&rdquo;</p>
               )
             )}
           </div>
