@@ -157,23 +157,29 @@ async function addMergeNode(page: import("@playwright/test").Page) {
 }
 
 async function connectNodeToMerge(page: import("@playwright/test").Page) {
-  // Drag from bottom handle of first asset node to left handle of merge node
-  const assetNode = page.locator(".react-flow__node").first();
-  const mergeNode = page.locator(".react-flow__node").last();
+  // Use ReactFlow's handle CSS classes to get exact viewport positions
+  // regardless of where nodes were randomly placed on the canvas
+  const sourceHandle = page.locator(".react-flow__handle-bottom").first();
+  const targetHandle = page.locator(".react-flow__handle-left").first();
 
-  const assetBox = await assetNode.boundingBox();
-  const mergeBox = await mergeNode.boundingBox();
-  if (!assetBox || !mergeBox) throw new Error("Could not get node bounding boxes");
+  await sourceHandle.waitFor({ state: "attached", timeout: 5_000 });
+  await targetHandle.waitFor({ state: "attached", timeout: 5_000 });
 
-  // Bottom-center of asset node → left-center of merge node
-  const sourceX = assetBox.x + assetBox.width / 2;
-  const sourceY = assetBox.y + assetBox.height - 2;
-  const targetX = mergeBox.x + 2;
-  const targetY = mergeBox.y + mergeBox.height / 2;
+  const sourceBox = await sourceHandle.boundingBox();
+  const targetBox = await targetHandle.boundingBox();
+  if (!sourceBox || !targetBox) throw new Error("Handles not found in DOM");
 
-  await page.mouse.move(sourceX, sourceY);
+  const sx = sourceBox.x + sourceBox.width / 2;
+  const sy = sourceBox.y + sourceBox.height / 2;
+  const tx = targetBox.x + targetBox.width / 2;
+  const ty = targetBox.y + targetBox.height / 2;
+
+  await page.mouse.move(sx, sy);
   await page.mouse.down();
-  await page.mouse.move(targetX, targetY, { steps: 20 });
+  // Move in fine steps so ReactFlow's pointer-move handler tracks the drag
+  for (let i = 1; i <= 20; i++) {
+    await page.mouse.move(sx + (tx - sx) * (i / 20), sy + (ty - sy) * (i / 20));
+  }
   await page.mouse.up();
 }
 
