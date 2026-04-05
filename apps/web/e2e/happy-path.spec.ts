@@ -60,13 +60,14 @@ test.describe("Canvas — text notes", () => {
     await expect(page.locator("textarea").first()).toBeVisible();
   });
 
-  test("edited text note shows Analyze button after blur", async ({ page }) => {
+  test("edited text note auto-triggers analysis after blur", async ({ page }) => {
+    test.setTimeout(60_000);
     await createSession(page, "E2E Analyze Button Test");
     await addTextNote(page);
     await page.getByText("New idea...").click();
     await page.locator("textarea").first().fill("Brutalist editorial design with stark contrast.");
-    await page.keyboard.press("Tab"); // Tab blurs the textarea, triggering handleBlur + save
-    await expect(page.getByRole("button", { name: "Analyze" })).toBeVisible({ timeout: 5_000 });
+    await page.keyboard.press("Tab"); // Tab blurs the textarea, triggering auto-analysis
+    await expect(page.getByText("Extracting signals…")).toBeVisible({ timeout: 10_000 });
   });
 
   test("delete button removes text note", async ({ page }) => {
