@@ -15,6 +15,14 @@ function toSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
+function toUniqueSlug(name: string, existingSlugs: string[]): string {
+  const base = toSlug(name);
+  if (!existingSlugs.includes(base)) return base;
+  let i = 2;
+  while (existingSlugs.includes(`${base}-${i}`)) i++;
+  return `${base}-${i}`;
+}
+
 function getSessionId() {
   return window.location.search.split("=")[1] || window.location.pathname.split("/").pop() || "";
 }
@@ -83,7 +91,16 @@ export default function MergeNodeComponent({ data, id, selected }: MergeNodeProp
         rawText: null,
         metadata: {
           loadingStatus: "idle",
-          mergeOutput: { ...result.data, elementSlug: toSlug(result.data.elementName) },
+          mergeOutput: {
+            ...result.data,
+            elementSlug: toUniqueSlug(
+              result.data.elementName,
+              assets
+                .filter((a) => a.type === "output")
+                .map((a) => (a.metadata?.mergeOutput as { elementSlug?: string } | undefined)?.elementSlug)
+                .filter((s): s is string => !!s)
+            ),
+          },
           sourceNodeId: id,
         },
         canvasPosition: outputPos,
