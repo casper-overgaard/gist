@@ -146,7 +146,136 @@ test.describe("Canvas — Merge node", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Suite 5: Analysis flow — auto-triggered (LLM — slower)
+// Suite 5: Canvas — Merge node connections
+// ---------------------------------------------------------------------------
+
+async function addMergeNode(page: import("@playwright/test").Page) {
+  await page.getByRole("button", { name: "+ Merge" }).click();
+  await expect(
+    page.getByText("Connect asset nodes to this merge node to synthesize a spec fragment.")
+  ).toBeVisible({ timeout: 5_000 });
+}
+
+async function connectNodeToMerge(page: import("@playwright/test").Page) {
+  // Drag from bottom handle of first asset node to left handle of merge node
+  const assetNode = page.locator(".react-flow__node").first();
+  const mergeNode = page.locator(".react-flow__node").last();
+
+  const assetBox = await assetNode.boundingBox();
+  const mergeBox = await mergeNode.boundingBox();
+  if (!assetBox || !mergeBox) throw new Error("Could not get node bounding boxes");
+
+  // Bottom-center of asset node → left-center of merge node
+  const sourceX = assetBox.x + assetBox.width / 2;
+  const sourceY = assetBox.y + assetBox.height - 2;
+  const targetX = mergeBox.x + 2;
+  const targetY = mergeBox.y + mergeBox.height / 2;
+
+  await page.mouse.move(sourceX, sourceY);
+  await page.mouse.down();
+  await page.mouse.move(targetX, targetY, { steps: 20 });
+  await page.mouse.up();
+}
+
+test.describe("Canvas — Merge node connections", () => {
+  test("connecting asset to merge node shows reference count", async ({ page }) => {
+    await createSession(page, "E2E Merge Connect Test");
+    await addTextNote(page);
+    await addMergeNode(page);
+    await connectNodeToMerge(page);
+    await expect(page.getByText("1 reference connected")).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("generate fragment button enables after connection", async ({ page }) => {
+    await createSession(page, "E2E Merge Enable Test");
+    await addTextNote(page);
+    await addMergeNode(page);
+    await connectNodeToMerge(page);
+    await expect(page.getByRole("button", { name: "Generate fragment" })).toBeEnabled({ timeout: 5_000 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite 6: Merge → fragment generation (LLM — slower)
+// ---------------------------------------------------------------------------
+
+test.describe("Merge fragment generation", () => {
+  test("generate fragment → OutputNode appears with element name and spec URL", async ({ page }) => {
+    test.setTimeout(180_000);
+    await createSession(page, "E2E Fragment Gen Test");
+    await addTextNote(page);
+    await page.getByText("New idea...").click();
+    await page.locator("textarea").first().fill(
+      "Dark editorial hero section. Amber accent. Full-bleed image with typographic overlay."
+    );
+    await page.keyboard.press("Tab");
+
+    // Wait for auto-analysis to complete
+    await expect(page.getByText("Extracting signals…")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("Extracting signals…")).not.toBeVisible({ timeout: 45_000 });
+
+    await addMergeNode(page);
+    await connectNodeToMerge(page);
+    await expect(page.getByRole("button", { name: "Generate fragment" })).toBeEnabled({ timeout: 5_000 });
+    await page.getByRole("button", { name: "Generate fragment" }).click();
+
+    await expect(page.getByText("Synthesizing…")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("Synthesizing…")).not.toBeVisible({ timeout: 60_000 });
+
+    // OutputNode should appear with a spec fragment heading
+    await expect(page.getByText("Spec Fragment")).toBeVisible({ timeout: 10_000 });
+
+    // Spec URL strip should be visible on the OutputNode
+    await expect(page.locator("code").filter({ hasText: "/api/spec/" })).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("Add to brief enables after fragment generated", async ({ page }) => {
+    test.setTimeout(180_000);
+    await createSession(page, "E2E Add To Brief Test");
+    await addTextNote(page);
+    await page.getByText("New idea...").click();
+    await page.locator("textarea").first().fill(
+      "Minimal card component. Subtle borders. Monospace labels."
+    );
+    await page.keyboard.press("Tab");
+    await expect(page.getByText("Extracting signals…")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("Extracting signals…")).not.toBeVisible({ timeout: 45_000 });
+
+    await addMergeNode(page);
+    await connectNodeToMerge(page);
+    await page.getByRole("button", { name: "Generate fragment" }).click();
+    await expect(page.getByText("Synthesizing…")).not.toBeVisible({ timeout: 60_000 });
+
+    await expect(page.getByRole("button", { name: "Add to brief" })).toBeVisible({ timeout: 5_000 });
+    await page.getByRole("button", { name: "Add to brief" }).click();
+    await expect(page.getByRole("button", { name: "Added to brief" })).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("OutputPanel shows Component Specs section after fragment generated", async ({ page }) => {
+    test.setTimeout(180_000);
+    await createSession(page, "E2E Component Specs Panel Test");
+    await addTextNote(page);
+    await page.getByText("New idea...").click();
+    await page.locator("textarea").first().fill(
+      "Navigation bar. Sticky. Transparent on scroll. Amber logo mark."
+    );
+    await page.keyboard.press("Tab");
+    await expect(page.getByText("Extracting signals…")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("Extracting signals…")).not.toBeVisible({ timeout: 45_000 });
+
+    await addMergeNode(page);
+    await connectNodeToMerge(page);
+    await page.getByRole("button", { name: "Generate fragment" }).click();
+    await expect(page.getByText("Synthesizing…")).not.toBeVisible({ timeout: 60_000 });
+
+    // OutputPanel should now show Component Specs section
+    await expect(page.getByText("Component Specs")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: "Copy all @includes" })).toBeVisible();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite 8: Analysis flow — auto-triggered (LLM — slower)
 // ---------------------------------------------------------------------------
 
 test.describe("Analysis flow", () => {
@@ -181,7 +310,7 @@ test.describe("Analysis flow", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Suite 6: Synthesis + output (LLM — slowest)
+// Suite 9: Synthesis + output (LLM — slowest)
 // ---------------------------------------------------------------------------
 
 test.describe("Synthesis and output flow", () => {
