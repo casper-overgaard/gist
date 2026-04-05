@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { Asset, MergeOutput } from "@signalboard/domain";
 import { useSessionStore } from "@/store/useSessionStore";
@@ -19,6 +20,20 @@ export default function OutputNodeComponent({ data, selected }: OutputNodeProps)
   const addedToBrief = (session?.mergeFragments ?? []).some(
     (f) => f.elementName === mergeOutput?.elementName && f.inferredIntent === mergeOutput?.inferredIntent
   );
+
+  const sessionId = getSessionId();
+  const fragmentUrl = mergeOutput?.elementSlug
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/api/spec/${sessionId}/${mergeOutput.elementSlug}`
+    : null;
+
+  const [copiedFragment, setCopiedFragment] = useState(false);
+  const handleCopyFragment = () => {
+    if (!fragmentUrl) return;
+    navigator.clipboard.writeText(fragmentUrl).then(() => {
+      setCopiedFragment(true);
+      setTimeout(() => setCopiedFragment(false), 2000);
+    });
+  };
 
   const borderClass = selected
     ? "border-[rgba(201,148,74,0.50)]"
@@ -63,6 +78,21 @@ export default function OutputNodeComponent({ data, selected }: OutputNodeProps)
         <p className="text-[11px] text-sb-text-secondary leading-relaxed mb-3">
           {mergeOutput.inferredIntent}
         </p>
+
+        {/* Spec URL */}
+        {fragmentUrl && (
+          <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 rounded bg-[rgba(201,148,74,0.05)] border border-[rgba(201,148,74,0.15)]">
+            <code className="text-[9px] font-mono text-sb-text-muted truncate flex-1 opacity-70">
+              {fragmentUrl}
+            </code>
+            <button
+              onClick={handleCopyFragment}
+              className="nodrag shrink-0 text-[9px] tracking-[0.06em] uppercase text-sb-accent opacity-60 hover:opacity-100 transition-opacity"
+            >
+              {copiedFragment ? "Copied" : "Copy"}
+            </button>
+          </div>
+        )}
 
         {/* Tokens */}
         {mergeOutput.tokens.length > 0 && (

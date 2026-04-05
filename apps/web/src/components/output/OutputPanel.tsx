@@ -25,6 +25,7 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
   const [intentDraft, setIntentDraft] = useState(session?.userIntent ?? "");
   const [copied, setCopied] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedAllIncludes, setCopiedAllIncludes] = useState(false);
   const intentSavedRef = useRef(session?.userIntent ?? "");
 
   const specUrl = typeof window !== "undefined"
@@ -42,6 +43,23 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
 
   const latestOutput = outputs[0] ?? null;
   const canGenerate = !!synthesis;
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const fragmentUrls = assets
+    .filter((a) => a.type === "output" && (a.metadata?.mergeOutput as { elementSlug?: string } | undefined)?.elementSlug)
+    .map((a) => {
+      const mo = a.metadata!.mergeOutput as { elementName: string; elementSlug: string };
+      return { elementName: mo.elementName, url: `${origin}/api/spec/${sessionId}/${mo.elementSlug}` };
+    });
+
+  const handleCopyAllIncludes = () => {
+    if (fragmentUrls.length === 0) return;
+    const text = fragmentUrls.map((f) => `@include ${f.url}`).join("\n");
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedAllIncludes(true);
+      setTimeout(() => setCopiedAllIncludes(false), 2000);
+    });
+  };
 
   const handleIntentBlur = async () => {
     if (intentDraft !== intentSavedRef.current) {
@@ -202,6 +220,33 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
           >
             {copiedUrl ? "Copied" : "Copy URL"}
           </button>
+        </div>
+      )}
+
+      {/* Component spec URLs */}
+      {fragmentUrls.length > 0 && (
+        <div className="px-4 py-2.5 border-b border-sb-border-subtle">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-60 font-medium">
+              Component Specs
+            </p>
+            <button
+              onClick={handleCopyAllIncludes}
+              className="text-[9px] tracking-[0.06em] uppercase px-2 py-1 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors"
+            >
+              {copiedAllIncludes ? "Copied" : "Copy all @includes"}
+            </button>
+          </div>
+          <div className="space-y-1.5">
+            {fragmentUrls.map((f) => (
+              <div key={f.url} className="flex items-center gap-2">
+                <code className="text-[9px] font-mono text-sb-text-muted truncate flex-1 opacity-60">
+                  {f.url}
+                </code>
+                <span className="text-[9px] text-sb-text-muted shrink-0 opacity-40">{f.elementName}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

@@ -11,6 +11,10 @@ interface MergeNodeProps {
   selected: boolean;
 }
 
+function toSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
 function getSessionId() {
   return window.location.search.split("=")[1] || window.location.pathname.split("/").pop() || "";
 }
@@ -79,7 +83,7 @@ export default function MergeNodeComponent({ data, id, selected }: MergeNodeProp
         rawText: null,
         metadata: {
           loadingStatus: "idle",
-          mergeOutput: result.data,
+          mergeOutput: { ...result.data, elementSlug: toSlug(result.data.elementName) },
           sourceNodeId: id,
         },
         canvasPosition: outputPos,

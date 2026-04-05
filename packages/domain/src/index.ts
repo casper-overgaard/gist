@@ -89,6 +89,7 @@ export const MergeClassPatternSchema = z.object({
 
 export const MergeOutputSchema = z.object({
   elementName: z.string(),
+  elementSlug: z.string().optional(),
   inferredIntent: z.string(),
   tokens: z.array(MergeTokenSchema),
   classPatterns: z.array(MergeClassPatternSchema),
