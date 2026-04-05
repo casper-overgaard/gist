@@ -157,30 +157,44 @@ async function addMergeNode(page: import("@playwright/test").Page) {
 }
 
 async function connectNodeToMerge(page: import("@playwright/test").Page) {
-  // Use ReactFlow's handle CSS classes to get exact viewport positions
-  // regardless of where nodes were randomly placed on the canvas
-  const sourceHandle = page.locator(".react-flow__handle-bottom").first();
-  const targetHandle = page.locator(".react-flow__handle-left").first();
+  // ReactFlow connection requires: pointerdown on source handle → pointermove
+  // on document → pointerup near target handle. Playwright's page.mouse doesn't
+  // reliably replicate this in headless mode, so dispatch events directly.
+  await page.locator(".react-flow__handle-bottom").first().waitFor({ state: "attached", timeout: 5_000 });
+  await page.locator(".react-flow__handle-left").first().waitFor({ state: "attached", timeout: 5_000 });
 
-  await sourceHandle.waitFor({ state: "attached", timeout: 5_000 });
-  await targetHandle.waitFor({ state: "attached", timeout: 5_000 });
+  await page.evaluate(() => {
+    const sourceEl = document.querySelector(".react-flow__handle-bottom") as Element | null;
+    const targetEl = document.querySelector(".react-flow__handle-left") as Element | null;
+    if (!sourceEl || !targetEl) throw new Error("Handles not found");
 
-  const sourceBox = await sourceHandle.boundingBox();
-  const targetBox = await targetHandle.boundingBox();
-  if (!sourceBox || !targetBox) throw new Error("Handles not found in DOM");
+    const sb = sourceEl.getBoundingClientRect();
+    const tb = targetEl.getBoundingClientRect();
+    const sx = sb.x + sb.width / 2;
+    const sy = sb.y + sb.height / 2;
+    const tx = tb.x + tb.width / 2;
+    const ty = tb.y + tb.height / 2;
 
-  const sx = sourceBox.x + sourceBox.width / 2;
-  const sy = sourceBox.y + sourceBox.height / 2;
-  const tx = targetBox.x + targetBox.width / 2;
-  const ty = targetBox.y + targetBox.height / 2;
+    const mkPointer = (type: string, x: number, y: number, target: EventTarget) =>
+      target.dispatchEvent(new PointerEvent(type, {
+        bubbles: true, cancelable: true,
+        clientX: x, clientY: y,
+        pointerId: 1, pointerType: "mouse",
+        isPrimary: true,
+      }));
 
-  await page.mouse.move(sx, sy);
-  await page.mouse.down();
-  // Move in fine steps so ReactFlow's pointer-move handler tracks the drag
-  for (let i = 1; i <= 20; i++) {
-    await page.mouse.move(sx + (tx - sx) * (i / 20), sy + (ty - sy) * (i / 20));
-  }
-  await page.mouse.up();
+    // 1. pointerdown on source handle — ReactFlow registers document listeners
+    mkPointer("pointerdown", sx, sy, sourceEl);
+
+    // 2. pointermove along path on document — ReactFlow tracks drag
+    const steps = 25;
+    for (let i = 1; i <= steps; i++) {
+      mkPointer("pointermove", sx + (tx - sx) * (i / steps), sy + (ty - sy) * (i / steps), document);
+    }
+
+    // 3. pointerup on document near target — ReactFlow finalizes connection
+    mkPointer("pointerup", tx, ty, document);
+  });
 }
 
 test.describe("Canvas — Merge node connections", () => {
