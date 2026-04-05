@@ -107,7 +107,7 @@ export default function MergeNodeComponent({ data, id, selected }: MergeNodeProp
       </button>
 
       {/* Multiple target handles for connecting from asset nodes */}
-      <Handle type="target" position={Position.Left} id="in" className="opacity-0" />
+      <Handle type="target" position={Position.Left} id="in" className="!w-2.5 !h-2.5 !bg-[rgba(201,148,74,0.4)] !border-[rgba(201,148,74,0.6)] opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div className="px-3 py-3">
         <p className="text-[9px] tracking-[0.16em] uppercase font-medium text-sb-accent mb-2">

@@ -139,7 +139,7 @@ export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
         )}
       </div>
 
-      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-[rgba(201,148,74,0.4)] !border-[rgba(201,148,74,0.6)] opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
   );
 }
