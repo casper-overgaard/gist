@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { Asset } from "@signalboard/domain";
 import { Handle, Position } from "@xyflow/react";
 import { useSessionStore } from "@/store/useSessionStore";
-import { useAssetAnalysis } from "@/hooks/useAssetAnalysis";
 import PinButton from "./PinButton";
 
 interface UrlNodeProps {
@@ -13,7 +12,6 @@ interface UrlNodeProps {
 export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
   const { asset } = data;
   const { removeAsset, updateAssetAnnotation } = useSessionStore();
-  const { triggerAnalysis } = useAssetAnalysis();
 
   const [annotationDraft, setAnnotationDraft] = useState<string>("");
   const annotationSaved = useRef("");
@@ -100,15 +98,6 @@ export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
           <p className="mt-2 text-[9px] tracking-[0.12em] uppercase font-medium text-sb-accent opacity-60 animate-pulse">
             Extracting signals…
           </p>
-        )}
-
-        {loadingStatus === "idle" && meta?.title && (
-          <button
-            onClick={() => triggerAnalysis(asset)}
-            className="mt-2.5 text-[9px] tracking-[0.10em] uppercase font-medium text-sb-accent px-2 py-1 rounded border border-[rgba(201,148,74,0.22)] hover:border-[rgba(201,148,74,0.50)] opacity-60 hover:opacity-100 transition-all"
-          >
-            Analyze
-          </button>
         )}
 
         {/* Signals + annotation — rest=hidden, hover=read-only, active=editable */}

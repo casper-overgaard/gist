@@ -47,7 +47,9 @@ export default function TextNodeComponent({ data, selected }: TextNodeProps) {
     setIsEditing(false);
     if (textVal !== asset.rawText && textVal.trim() !== "") {
       await updateAssetText(asset.id, textVal);
-      await addAsset({ ...asset, rawText: textVal, metadata: { ...metadata, loadingStatus: "idle" } });
+      const updatedAsset = { ...asset, rawText: textVal, metadata: { ...metadata, loadingStatus: "idle" } };
+      await addAsset(updatedAsset);
+      await triggerAnalysis(updatedAsset);
     }
   };
 
@@ -106,15 +108,6 @@ export default function TextNodeComponent({ data, selected }: TextNodeProps) {
           <p className="mt-2.5 text-[9px] tracking-[0.12em] uppercase font-medium text-sb-accent opacity-60 animate-pulse">
             Extracting signals…
           </p>
-        )}
-
-        {loadingStatus === "idle" && !isEditing && (
-          <button
-            onClick={() => triggerAnalysis(asset)}
-            className="mt-3 text-[9px] tracking-[0.10em] uppercase font-medium text-sb-accent px-2 py-1 rounded border border-[rgba(201,148,74,0.22)] hover:border-[rgba(201,148,74,0.50)] opacity-60 hover:opacity-100 transition-all"
-          >
-            Analyze
-          </button>
         )}
 
         {/* Signals + annotation — rest=hidden, hover=read-only, active=editable */}

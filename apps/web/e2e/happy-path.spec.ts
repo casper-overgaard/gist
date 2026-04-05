@@ -145,11 +145,11 @@ test.describe("Canvas — Merge node", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Suite 5: Analysis flow (LLM — slower)
+// Suite 5: Analysis flow — auto-triggered (LLM — slower)
 // ---------------------------------------------------------------------------
 
 test.describe("Analysis flow", () => {
-  test("analyze text note → signals appear → Clarify panel updates", async ({ page }) => {
+  test("text save auto-triggers analysis → signals appear → Clarify panel updates", async ({ page }) => {
     test.setTimeout(120_000);
     await createSession(page, "E2E Analysis Test");
     await addTextNote(page);
@@ -157,15 +157,25 @@ test.describe("Analysis flow", () => {
     await page.locator("textarea").first().fill(
       "Clean Swiss editorial design. Dark surfaces, precision type, maximal whitespace."
     );
-    await page.keyboard.press("Tab"); // blur to save + show Analyze button
+    // Tab to blur — auto-analysis triggers, no manual Analyze button needed
+    await page.keyboard.press("Tab");
 
-    await page.getByRole("button", { name: "Analyze" }).click();
     await expect(page.getByText("Extracting signals…")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText("Extracting signals…")).not.toBeVisible({ timeout: 45_000 });
 
     await expect(
       page.getByText("Signals ready. Run synthesis to generate targeted questions.")
     ).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("Analyze button no longer present on text note", async ({ page }) => {
+    await createSession(page, "E2E No Analyze Button Test");
+    await addTextNote(page);
+    await page.getByText("New idea...").click();
+    await page.locator("textarea").first().fill("Some design text.");
+    await page.keyboard.press("Tab");
+    // Analyze button should not appear — analysis is automatic
+    await expect(page.getByRole("button", { name: "Analyze" })).not.toBeVisible({ timeout: 3_000 });
   });
 });
 
@@ -184,7 +194,8 @@ test.describe("Synthesis and output flow", () => {
     );
     await page.keyboard.press("Tab");
 
-    await page.getByRole("button", { name: "Analyze" }).click();
+    // Auto-analysis triggers on blur — no Analyze button needed
+    await expect(page.getByText("Extracting signals…")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText("Extracting signals…")).not.toBeVisible({ timeout: 45_000 });
 
     await page.getByRole("button", { name: "Synthesize signals" }).click();
@@ -204,7 +215,8 @@ test.describe("Synthesis and output flow", () => {
     );
     await page.keyboard.press("Tab");
 
-    await page.getByRole("button", { name: "Analyze" }).click();
+    // Auto-analysis triggers on blur — no Analyze button needed
+    await expect(page.getByText("Extracting signals…")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText("Extracting signals…")).not.toBeVisible({ timeout: 45_000 });
 
     await page.getByRole("button", { name: "Synthesize signals" }).click();

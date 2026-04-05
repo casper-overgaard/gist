@@ -24,7 +24,12 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
 
   const [intentDraft, setIntentDraft] = useState(session?.userIntent ?? "");
   const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const intentSavedRef = useRef(session?.userIntent ?? "");
+
+  const specUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/api/spec/${sessionId}`
+    : `/api/spec/${sessionId}`;
 
   // Sync intent from session once it loads
   useEffect(() => {
@@ -179,6 +184,26 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
           </button>
         </div>
       </div>
+
+      {/* Spec URL — live link for @include in CLAUDE.md */}
+      {latestOutput && (
+        <div className="px-4 py-2 border-b border-sb-border-subtle flex items-center gap-2">
+          <code className="text-[9px] text-sb-text-muted font-mono truncate flex-1 opacity-60">
+            {specUrl}
+          </code>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(specUrl).then(() => {
+                setCopiedUrl(true);
+                setTimeout(() => setCopiedUrl(false), 2000);
+              });
+            }}
+            className="text-[9px] tracking-[0.06em] uppercase shrink-0 px-2 py-1 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors"
+          >
+            {copiedUrl ? "Copied" : "Copy URL"}
+          </button>
+        </div>
+      )}
 
       {/* Intent input */}
       <div className="px-4 pt-3 pb-2 border-b border-sb-border-subtle">

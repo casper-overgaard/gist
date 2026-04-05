@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { Asset } from "@signalboard/domain";
 import { Handle, Position } from "@xyflow/react";
 import { useSessionStore } from "@/store/useSessionStore";
-import { useAssetAnalysis } from "@/hooks/useAssetAnalysis";
 import PinButton from "./PinButton";
 
 interface ImageNodeProps {
@@ -13,7 +12,6 @@ interface ImageNodeProps {
 export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
   const { asset } = data;
   const { removeAsset, updateAssetAnnotation } = useSessionStore();
-  const { triggerAnalysis } = useAssetAnalysis();
 
   const [annotationDraft, setAnnotationDraft] = useState<string>("");
   const annotationSaved = useRef("");
@@ -79,17 +77,6 @@ export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
           <p className="text-[9px] tracking-[0.12em] uppercase font-medium text-sb-accent opacity-60 animate-pulse">
             Extracting signals…
           </p>
-        </div>
-      )}
-
-      {loadingStatus === "idle" && (
-        <div className="px-3 py-2.5">
-          <button
-            onClick={() => triggerAnalysis(asset)}
-            className="text-[9px] tracking-[0.10em] uppercase font-medium text-sb-accent px-2 py-1 rounded border border-[rgba(201,148,74,0.22)] hover:border-[rgba(201,148,74,0.50)] opacity-60 hover:opacity-100 transition-all"
-          >
-            Analyze
-          </button>
         </div>
       )}
 

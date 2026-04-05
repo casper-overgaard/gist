@@ -28,6 +28,7 @@ import MergeNodeComponent from "./MergeNode";
 import OutputNodeComponent from "./OutputNode";
 import { uploadAssetImage } from "@/lib/storage";
 import { fetchUrlMetadataAction } from "@/actions/fetchUrl";
+import { useAssetAnalysis } from "@/hooks/useAssetAnalysis";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const nodeTypes = {
@@ -45,6 +46,7 @@ function getSessionId() {
 function CanvasInner() {
   const { assets, edges: storedEdges, updateAssetPosition, addEdge: storeAddEdge, removeEdge: storeRemoveEdge, session } = useSessionStore();
   const { screenToFlowPosition } = useReactFlow();
+  const { triggerAnalysis } = useAssetAnalysis();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [isDragging, setIsDragging] = useState(false);
@@ -187,11 +189,13 @@ function CanvasInner() {
       const metaResult = await fetchUrlMetadataAction(raw);
       if (!metaResult.success) throw new Error(metaResult.error);
       const { title, description, imageUrl, domain, url } = metaResult.data;
-      await useSessionStore.getState().addAsset({
+      const readyAsset = {
         ...placeholder,
         source: url,
         metadata: { loadingStatus: "idle", urlMeta: { title, description, imageUrl, domain } },
-      });
+      };
+      await useSessionStore.getState().addAsset(readyAsset);
+      await triggerAnalysis(readyAsset);
     } catch (err) {
       console.error("URL asset failed:", err);
       await useSessionStore.getState().addAsset({ ...placeholder, metadata: { loadingStatus: "error" } });
@@ -215,12 +219,14 @@ function CanvasInner() {
     await useSessionStore.getState().addAsset(newAsset);
     try {
       const imageUrl = await uploadAssetImage(sessionId, file);
-      await useSessionStore.getState().addAsset({ ...newAsset, contentRef: imageUrl, metadata: { loadingStatus: "idle" } });
+      const readyAsset = { ...newAsset, contentRef: imageUrl, metadata: { loadingStatus: "idle" } };
+      await useSessionStore.getState().addAsset(readyAsset);
+      await triggerAnalysis(readyAsset);
     } catch (err) {
       console.error("Image upload failed:", err);
       await useSessionStore.getState().addAsset({ ...newAsset, metadata: { loadingStatus: "error" } });
     }
-  }, []);
+  }, [triggerAnalysis]);
 
   const ingestUrl = useCallback(async (raw: string, pos: { x: number; y: number }) => {
     const sessionId = getSessionId();
@@ -240,16 +246,18 @@ function CanvasInner() {
       const metaResult = await fetchUrlMetadataAction(raw);
       if (!metaResult.success) throw new Error(metaResult.error);
       const { title, description, imageUrl, domain, url } = metaResult.data;
-      await useSessionStore.getState().addAsset({
+      const readyAsset = {
         ...placeholder,
         source: url,
         metadata: { loadingStatus: "idle", urlMeta: { title, description, imageUrl, domain } },
-      });
+      };
+      await useSessionStore.getState().addAsset(readyAsset);
+      await triggerAnalysis(readyAsset);
     } catch (err) {
       console.error("URL ingest failed:", err);
       await useSessionStore.getState().addAsset({ ...placeholder, metadata: { loadingStatus: "error" } });
     }
-  }, []);
+  }, [triggerAnalysis]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
