@@ -21,6 +21,7 @@ export default function TextNodeComponent({ data, selected }: TextNodeProps) {
   const loadingStatus = metadata.loadingStatus as string | undefined;
   const analysis = asset.metadata?.analysis;
   const confidence = analysis?.confidence ?? 0;
+  const signalCount = (analysis?.perceptualSignals?.length ?? 0) + (analysis?.craftSignals?.length ?? 0);
 
   useEffect(() => {
     if (!isEditing && asset.rawText !== textVal) setTextVal(asset.rawText || "");
@@ -88,11 +89,15 @@ export default function TextNodeComponent({ data, selected }: TextNodeProps) {
           </div>
         )}
 
-        {loadingStatus === "analyzing" && (
+        {loadingStatus === "analyzing" ? (
           <p className="mt-2.5 text-[9px] tracking-[0.12em] uppercase font-medium text-sb-accent opacity-60 animate-pulse">
             Extracting signals…
           </p>
-        )}
+        ) : signalCount > 0 ? (
+          <p className="mt-2 text-[9px] text-sb-accent opacity-50">
+            {signalCount} signal{signalCount !== 1 ? "s" : ""}
+          </p>
+        ) : null}
       </div>
 
       <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-[rgba(201,148,74,0.4)] !border-[rgba(201,148,74,0.6)] opacity-0 group-hover:opacity-100 transition-opacity" />

@@ -13,7 +13,7 @@ async function createSession(page: import("@playwright/test").Page, title: strin
 }
 
 async function addTextNote(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: "+ Text note" }).click();
+  await page.getByRole("button", { name: "Add text note" }).click();
   await expect(page.getByText("New idea...")).toBeVisible({ timeout: 5_000 });
 }
 
@@ -105,7 +105,7 @@ test.describe("Canvas — text notes", () => {
 test.describe("Canvas — URL cards", () => {
   test("add URL card via toolbar shows domain after fetch", async ({ page }) => {
     await createSession(page, "E2E URL Test");
-    await page.getByRole("button", { name: "+ URL" }).click();
+    await page.getByRole("button", { name: "Add URL" }).click();
     await expect(page.getByPlaceholder("https://...")).toBeVisible();
     await page.getByPlaceholder("https://...").fill("https://vercel.com");
     await page.getByRole("button", { name: "Add" }).click();
@@ -118,7 +118,7 @@ test.describe("Canvas — URL cards", () => {
 
   test("URL input dismisses on Escape", async ({ page }) => {
     await createSession(page, "E2E URL Escape Test");
-    await page.getByRole("button", { name: "+ URL" }).click();
+    await page.getByRole("button", { name: "Add URL" }).click();
     await expect(page.getByPlaceholder("https://...")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByPlaceholder("https://...")).not.toBeVisible();
@@ -132,7 +132,7 @@ test.describe("Canvas — URL cards", () => {
 test.describe("Canvas — Merge node", () => {
   test("add merge node via toolbar", async ({ page }) => {
     await createSession(page, "E2E Merge Node Test");
-    await page.getByRole("button", { name: "+ Merge" }).click();
+    await page.getByRole("button", { name: "Add merge node" }).click();
     await expect(
       page.getByText("Connect asset nodes to this merge node to synthesize a spec fragment.")
     ).toBeVisible({ timeout: 5_000 });
@@ -140,7 +140,7 @@ test.describe("Canvas — Merge node", () => {
 
   test("generate fragment button is disabled with no connections", async ({ page }) => {
     await createSession(page, "E2E Merge Button Test");
-    await page.getByRole("button", { name: "+ Merge" }).click();
+    await page.getByRole("button", { name: "Add merge node" }).click();
     await expect(page.getByRole("button", { name: "Generate fragment" })).toBeDisabled({ timeout: 5_000 });
   });
 });
@@ -165,7 +165,7 @@ test.describe("Analysis flow", () => {
     await expect(page.getByText("Extracting signals…")).not.toBeVisible({ timeout: 45_000 });
 
     await expect(
-      page.getByText("Signals ready. Run synthesis to generate targeted questions.")
+      page.getByRole("button", { name: "Synthesize signals" })
     ).toBeVisible({ timeout: 5_000 });
   });
 
@@ -203,7 +203,7 @@ test.describe("Synthesis and output flow", () => {
     await expect(page.getByRole("button", { name: "Synthesizing…" })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole("button", { name: "Synthesizing…" })).not.toBeVisible({ timeout: 45_000 });
 
-    await expect(page.getByRole("button", { name: "Generate" })).toBeEnabled({ timeout: 5_000 });
+    await expect(page.getByRole("button", { name: "Generate brief" })).toBeEnabled({ timeout: 5_000 });
   });
 
   test("generate → direction brief + export buttons appear", async ({ page }) => {
@@ -223,8 +223,8 @@ test.describe("Synthesis and output flow", () => {
     await page.getByRole("button", { name: "Synthesize signals" }).click();
     await expect(page.getByRole("button", { name: "Synthesizing…" })).not.toBeVisible({ timeout: 45_000 });
 
-    await page.getByRole("button", { name: "Generate" }).click();
-    await expect(page.getByText("Generating brief…")).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: "Generate brief" }).click();
+    await expect(page.getByText("Generating…")).toBeVisible({ timeout: 10_000 });
 
     // Re-generate button confirms output was produced
     await expect(page.getByRole("button", { name: "Re-generate" })).toBeVisible({ timeout: 60_000 });

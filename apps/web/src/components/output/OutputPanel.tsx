@@ -156,131 +156,128 @@ export default function OutputPanel({ sessionId }: OutputPanelProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3.5 border-b border-sb-border-subtle flex items-center justify-between">
-        <div>
-          <p className="text-[10px] tracking-[0.15em] uppercase font-medium text-sb-accent opacity-70">
-            Direction Brief
-          </p>
-          {latestOutput && (
-            <p className="text-[11px] text-sb-text-muted mt-0.5">
-              v{latestOutput.version}
-            </p>
-          )}
-        </div>
-        <div className="flex gap-1.5 items-center">
-          {latestOutput && (
-            <>
+      {/* Header */}
+      <div className="px-4 py-3.5 border-b border-sb-border-subtle">
+        <p className="text-[9px] tracking-[0.15em] uppercase font-medium text-sb-accent opacity-60">
+          Brief
+        </p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {/* Export card — hero when output exists */}
+        {latestOutput && (
+          <div className="mx-3 mt-3 rounded border border-[rgba(201,148,74,0.25)] bg-[rgba(201,148,74,0.04)]">
+            <div className="px-3 pt-2.5 pb-1.5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-60">
+                  v{latestOutput.version} · Design Spec
+                </p>
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                <button
+                  onClick={handleCopyForClaudeCode}
+                  title="Copy as CLAUDE.md instructions for Claude Code"
+                  className="text-[9px] tracking-[0.06em] uppercase px-2 py-1 rounded border border-[rgba(201,148,74,0.30)] text-sb-accent hover:border-[rgba(201,148,74,0.60)] transition-colors"
+                >
+                  {copied ? "Copied" : "Claude Code"}
+                </button>
+                <button
+                  onClick={handleCopyForCursor}
+                  title="Copy wrapped in <rules> block for Cursor"
+                  className="text-[9px] tracking-[0.06em] uppercase px-2 py-1 rounded border border-[rgba(201,148,74,0.30)] text-sb-accent hover:border-[rgba(201,148,74,0.60)] transition-colors"
+                >
+                  Cursor
+                </button>
+                <button
+                  onClick={handleExportSpec}
+                  title="Export as CLAUDE.md"
+                  className="text-[9px] tracking-[0.06em] uppercase px-2 py-1 rounded border border-[rgba(201,148,74,0.30)] text-sb-accent hover:border-[rgba(201,148,74,0.60)] transition-colors"
+                >
+                  Export
+                </button>
+              </div>
+            </div>
+            <div className="px-3 py-2 border-t border-[rgba(201,148,74,0.12)] flex items-center gap-2">
+              <code className="text-[9px] text-sb-text-muted font-mono truncate flex-1 opacity-50">
+                {specUrl}
+              </code>
               <button
-                onClick={handleCopyForClaudeCode}
-                title="Copy as CLAUDE.md instructions for Claude Code"
-                className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors"
+                onClick={() => {
+                  navigator.clipboard.writeText(specUrl).then(() => {
+                    setCopiedUrl(true);
+                    setTimeout(() => setCopiedUrl(false), 2000);
+                  });
+                }}
+                className="text-[9px] tracking-[0.06em] uppercase shrink-0 text-sb-accent opacity-60 hover:opacity-100 transition-opacity"
               >
-                {copied ? "Copied" : "Claude Code"}
+                {copiedUrl ? "Copied" : "Copy"}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Component spec URLs */}
+        {fragmentUrls.length > 0 && (
+          <div className="mx-3 mt-2 rounded border border-sb-border-subtle px-3 py-2.5">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-50 font-medium">
+                Fragments
+              </p>
               <button
-                onClick={handleCopyForCursor}
-                title="Copy wrapped in <rules> block for Cursor"
-                className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors"
+                onClick={handleCopyAllIncludes}
+                className="text-[9px] tracking-[0.06em] uppercase text-sb-text-muted hover:text-sb-text-primary transition-colors"
               >
-                Cursor
+                {copiedAllIncludes ? "Copied" : "@include all"}
               </button>
-              <button
-                onClick={handleExportSpec}
-                title="Export as CLAUDE.md"
-                className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors"
-              >
-                Export
-              </button>
-            </>
-          )}
+            </div>
+            <div className="space-y-1">
+              {fragmentUrls.map((f) => (
+                <div key={f.url} className="flex items-center gap-2">
+                  <span className="text-[9px] text-sb-text-muted shrink-0 opacity-60">{f.elementName}</span>
+                  <code className="text-[9px] font-mono text-sb-text-muted truncate flex-1 opacity-40">
+                    /{f.url.split("/api/spec/")[1]}
+                  </code>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Intent + generate */}
+        <div className="px-3 pt-3 pb-2">
+          <textarea
+            value={intentDraft}
+            onChange={(e) => setIntentDraft(e.target.value)}
+            onBlur={handleIntentBlur}
+            placeholder="What are you building? (e.g. a portfolio, a SaaS dashboard…)"
+            rows={2}
+            className="w-full bg-transparent border border-sb-border rounded px-3 py-2 text-[11px] text-sb-text-primary outline-none focus:border-[rgba(201,148,74,0.40)] placeholder-sb-text-muted resize-none transition-colors"
+          />
           <button
             onClick={handleGenerate}
             disabled={isGeneratingOutput || !canGenerate}
-            className="text-[10px] tracking-[0.06em] uppercase px-2.5 py-1.5 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="mt-2 w-full py-2 rounded border border-sb-border text-[10px] tracking-[0.08em] uppercase font-medium text-sb-text-muted hover:text-sb-accent hover:border-[rgba(201,148,74,0.40)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            {isGeneratingOutput ? "…" : latestOutput ? "Re-generate" : "Generate"}
+            {isGeneratingOutput ? "Generating…" : latestOutput ? "Re-generate" : "Generate brief"}
           </button>
-        </div>
-      </div>
-
-      {/* Spec URL — live link for @include in CLAUDE.md */}
-      {latestOutput && (
-        <div className="px-4 py-2 border-b border-sb-border-subtle flex items-center gap-2">
-          <code className="text-[9px] text-sb-text-muted font-mono truncate flex-1 opacity-60">
-            {specUrl}
-          </code>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(specUrl).then(() => {
-                setCopiedUrl(true);
-                setTimeout(() => setCopiedUrl(false), 2000);
-              });
-            }}
-            className="text-[9px] tracking-[0.06em] uppercase shrink-0 px-2 py-1 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors"
-          >
-            {copiedUrl ? "Copied" : "Copy URL"}
-          </button>
-        </div>
-      )}
-
-      {/* Component spec URLs */}
-      {fragmentUrls.length > 0 && (
-        <div className="px-4 py-2.5 border-b border-sb-border-subtle">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-60 font-medium">
-              Component Specs
+          {!canGenerate && (
+            <p className="text-[9px] text-sb-text-muted opacity-40 text-center mt-1.5">
+              Synthesize first
             </p>
-            <button
-              onClick={handleCopyAllIncludes}
-              className="text-[9px] tracking-[0.06em] uppercase px-2 py-1 rounded border border-sb-border text-sb-text-muted hover:text-sb-text-primary hover:border-sb-border-hover transition-colors"
-            >
-              {copiedAllIncludes ? "Copied" : "Copy all @includes"}
-            </button>
-          </div>
-          <div className="space-y-1.5">
-            {fragmentUrls.map((f) => (
-              <div key={f.url} className="flex items-center gap-2">
-                <code className="text-[9px] font-mono text-sb-text-muted truncate flex-1 opacity-60">
-                  {f.url}
-                </code>
-                <span className="text-[9px] text-sb-text-muted shrink-0 opacity-40">{f.elementName}</span>
-              </div>
-            ))}
-          </div>
+          )}
         </div>
-      )}
 
-      {/* Intent input */}
-      <div className="px-4 pt-3 pb-2 border-b border-sb-border-subtle">
-        <textarea
-          value={intentDraft}
-          onChange={(e) => setIntentDraft(e.target.value)}
-          onBlur={handleIntentBlur}
-          placeholder="What are you working on? (e.g. a portfolio site, a SaaS dashboard…)"
-          rows={2}
-          className="w-full bg-sb-base border border-sb-border rounded px-3 py-2 text-xs text-sb-text-primary outline-none focus:border-[rgba(201,148,74,0.40)] placeholder-sb-text-muted resize-none transition-colors"
-        />
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
-        {isGeneratingOutput && (
-          <p className="text-[10px] tracking-[0.10em] uppercase text-sb-text-muted animate-pulse pt-3">
-            Generating brief…
-          </p>
-        )}
-
-        {!isGeneratingOutput && !latestOutput && (
-          <p className="text-xs text-sb-text-muted pt-3 leading-relaxed">
-            {canGenerate
-              ? "Signals synthesized. Describe your project above, then generate."
-              : "Synthesize signals in the Clarify panel first."}
-          </p>
-        )}
-
+        {/* Brief content */}
         {!isGeneratingOutput && latestOutput && (
-          <div className="pt-3">
+          <div className="px-3 pb-4 border-t border-sb-border-subtle pt-3">
             <HumanBrief payload={latestOutput.structuredPayload} />
           </div>
+        )}
+
+        {isGeneratingOutput && (
+          <p className="text-[10px] tracking-[0.10em] uppercase text-sb-text-muted animate-pulse px-3 pt-2">
+            Generating…
+          </p>
         )}
       </div>
     </div>

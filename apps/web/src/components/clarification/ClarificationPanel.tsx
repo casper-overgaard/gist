@@ -11,7 +11,7 @@ interface ClarificationPanelProps {
 }
 
 export default function ClarificationPanel({ sessionId }: ClarificationPanelProps) {
-  const { assets, questions, isSynthesizing, setIsSynthesizing, writeSynthesis, writeQuestions } = useSessionStore();
+  const { assets, questions, synthesis, isSynthesizing, setIsSynthesizing, writeSynthesis, writeQuestions } = useSessionStore();
 
   const pendingQuestions = questions.filter((q) => q.status === "pending");
   const answeredQuestions = questions.filter((q) => q.status === "answered");
@@ -76,24 +76,37 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
     return (
       <div className="flex flex-col h-full">
         <div className="px-4 py-3.5 border-b border-sb-border-subtle">
-          <p className="text-[10px] tracking-[0.15em] uppercase font-medium text-sb-accent opacity-70">
-            Clarify Direction
-          </p>
-          <p className="text-xs text-sb-text-muted mt-1 leading-relaxed">
-            {hasAnalyzedAssets
-              ? "Signals ready. Run synthesis to generate targeted questions."
-              : "Add and analyze assets on the canvas first."}
+          <p className="text-[9px] tracking-[0.15em] uppercase font-medium text-sb-accent opacity-60">
+            Synthesize
           </p>
         </div>
+        {synthesis && (
+          <div className="mx-3 mt-3 rounded border border-[rgba(201,148,74,0.18)] bg-[rgba(201,148,74,0.04)] px-3 py-2.5">
+            <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-60 mb-1.5">Direction</p>
+            {synthesis.aggregateSignals.slice(0, 3).map((s, i) => (
+              <p key={i} className="text-[10px] text-sb-text-secondary leading-relaxed">— {s}</p>
+            ))}
+            {synthesis.conflictingSignals.length > 0 && (
+              <p className="text-[10px] text-sb-text-muted opacity-60 mt-1.5 leading-relaxed">
+                ↯ {synthesis.conflictingSignals[0]}
+              </p>
+            )}
+          </div>
+        )}
         <div className="flex-1 flex items-center justify-center p-4">
           <button
             onClick={handleSynthesize}
             disabled={isSynthesizing || !hasAnalyzedAssets}
             className="px-4 py-2.5 bg-sb-accent text-sb-base text-xs font-medium rounded hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            {isSynthesizing ? "Synthesizing…" : "Synthesize signals"}
+            {isSynthesizing ? "Synthesizing…" : synthesis ? "Re-synthesize" : "Synthesize signals"}
           </button>
         </div>
+        {!hasAnalyzedAssets && (
+          <p className="text-[10px] text-sb-text-muted opacity-40 text-center pb-4">
+            Add and analyze assets first
+          </p>
+        )}
       </div>
     );
   }
@@ -119,6 +132,19 @@ export default function ClarificationPanel({ sessionId }: ClarificationPanelProp
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {synthesis && (
+          <div className="rounded border border-[rgba(201,148,74,0.18)] bg-[rgba(201,148,74,0.04)] px-3 py-2.5 mb-1">
+            <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-60 mb-1.5">Direction</p>
+            {synthesis.aggregateSignals.slice(0, 3).map((s, i) => (
+              <p key={i} className="text-[10px] text-sb-text-secondary leading-relaxed">— {s}</p>
+            ))}
+            {synthesis.conflictingSignals.length > 0 && (
+              <p className="text-[10px] text-sb-text-muted opacity-60 mt-1.5 leading-relaxed">
+                ↯ {synthesis.conflictingSignals[0]}
+              </p>
+            )}
+          </div>
+        )}
         {pendingQuestions.map((q) => (
           <QuestionCard key={q.id} question={q} sessionId={sessionId} />
         ))}

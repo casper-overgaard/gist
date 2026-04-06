@@ -44,7 +44,7 @@ function getSessionId() {
 }
 
 function CanvasInner() {
-  const { assets, edges: storedEdges, updateAssetPosition, addEdge: storeAddEdge, removeEdge: storeRemoveEdge, session, setSelectedAssetId } = useSessionStore();
+  const { assets, edges: storedEdges, updateAssetPosition, addEdge: storeAddEdge, removeEdge: storeRemoveEdge, session, setSelectedAssetId, isLoading } = useSessionStore();
   const { screenToFlowPosition } = useReactFlow();
   const { triggerAnalysis } = useAssetAnalysis();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -337,6 +337,18 @@ function CanvasInner() {
         </div>
       )}
 
+      {/* Empty canvas ghost state */}
+      {!isLoading && assets.length === 0 && !isDragging && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none select-none gap-3">
+          <p className="text-[11px] text-sb-text-muted opacity-40 tracking-[0.08em]">
+            Drop an image · Paste a URL · Add a note
+          </p>
+          <p className="text-[9px] text-sb-text-muted opacity-25 tracking-[0.14em] uppercase">
+            Collect references to synthesize a design spec
+          </p>
+        </div>
+      )}
+
       {/* Workspace name / back link — top left */}
       <div className="absolute top-4 left-4 z-10">
         <Link
@@ -348,10 +360,52 @@ function CanvasInner() {
         </Link>
       </div>
 
-      {/* Toolbar — top right */}
-      <div className="absolute top-4 right-4 z-10 flex gap-2 items-start">
-        {urlInputOpen && (
-          <form onSubmit={handleAddUrl} className="flex gap-1">
+      {/* Toolbar — bottom center dock */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex gap-1 items-center bg-sb-surface-1 border border-sb-border rounded-full px-2 py-1.5 shadow-sm">
+        <button
+          onClick={() => setUrlInputOpen((v) => !v)}
+          aria-label="Add URL"
+          title="Add URL"
+          className={`w-8 h-8 flex items-center justify-center rounded-full text-sb-text-muted hover:text-sb-text-primary hover:bg-[rgba(201,148,74,0.08)] transition-colors ${urlInputOpen ? "text-sb-accent bg-[rgba(201,148,74,0.08)]" : ""}`}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M5.5 8.5L8.5 5.5M6 3.5L6.47 3.03A3.18 3.18 0 0 1 11 7.53L10.5 8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+            <path d="M8 10.5L7.53 10.97A3.18 3.18 0 0 1 3 6.47L3.5 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+          </svg>
+        </button>
+        <button
+          onClick={handleAddText}
+          aria-label="Add text note"
+          title="Add text note"
+          className="w-8 h-8 flex items-center justify-center rounded-full text-sb-text-muted hover:text-sb-text-primary hover:bg-[rgba(201,148,74,0.08)] transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="2" y="2" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+            <path d="M4.5 5H9.5M4.5 7H8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+          </svg>
+        </button>
+        <div className="w-px h-4 bg-sb-border mx-0.5" />
+        <button
+          onClick={handleAddMergeNode}
+          aria-label="Add merge node"
+          title="Add merge node"
+          className="w-8 h-8 flex items-center justify-center rounded-full text-sb-text-muted hover:text-sb-accent hover:bg-[rgba(201,148,74,0.08)] transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="3" cy="4" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+            <circle cx="3" cy="10" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+            <circle cx="11" cy="7" r="1.5" stroke="currentColor" strokeWidth="1.2"/>
+            <path d="M4.5 4.5L9.5 6.5M4.5 9.5L9.5 7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+          </svg>
+        </button>
+        <div className="w-px h-4 bg-sb-border mx-0.5" />
+        <ThemeToggle />
+      </div>
+
+      {/* URL input popover */}
+      {urlInputOpen && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20">
+          <form onSubmit={handleAddUrl} className="flex gap-1 bg-sb-surface-1 border border-sb-border rounded-lg p-1.5 shadow-sm">
             <input
               autoFocus
               type="text"
@@ -359,37 +413,18 @@ function CanvasInner() {
               onChange={(e) => setUrlInput(e.target.value)}
               onKeyDown={(e) => e.key === "Escape" && setUrlInputOpen(false)}
               placeholder="https://..."
-              className="px-3 py-2 bg-sb-surface-1 border border-sb-border rounded text-sb-text-primary text-xs w-52 outline-none focus:border-[rgba(201,148,74,0.40)] placeholder-sb-text-muted transition-colors"
+              className="px-3 py-1.5 bg-transparent text-sb-text-primary text-xs w-52 outline-none placeholder-sb-text-muted"
             />
             <button
               type="submit"
               disabled={urlLoading}
-              className="px-3 py-2 bg-sb-surface-1 text-sb-text-primary border border-sb-border rounded hover:border-sb-border-hover transition-colors text-xs disabled:opacity-40"
+              className="px-3 py-1.5 bg-sb-accent text-sb-base rounded text-xs font-medium disabled:opacity-40 hover:opacity-90 transition-opacity"
             >
               {urlLoading ? "…" : "Add"}
             </button>
           </form>
-        )}
-        <button
-          onClick={() => setUrlInputOpen((v) => !v)}
-          className="px-3 py-2 bg-sb-surface-1 text-sb-text-muted border border-sb-border rounded hover:border-sb-border-hover hover:text-sb-text-primary transition-colors text-xs"
-        >
-          + URL
-        </button>
-        <button
-          onClick={handleAddText}
-          className="px-3 py-2 bg-sb-surface-1 text-sb-text-muted border border-sb-border rounded hover:border-sb-border-hover hover:text-sb-text-primary transition-colors text-xs"
-        >
-          + Text note
-        </button>
-        <button
-          onClick={handleAddMergeNode}
-          className="px-3 py-2 bg-sb-surface-1 text-sb-text-muted border border-sb-border rounded hover:border-sb-border-hover hover:text-sb-text-primary transition-colors text-xs"
-        >
-          + Merge
-        </button>
-        <ThemeToggle />
-      </div>
+        </div>
+      )}
 
       <ReactFlow
         nodes={nodes}

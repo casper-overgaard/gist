@@ -16,6 +16,7 @@ export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
   const metadata = asset.metadata || {};
   const loadingStatus = metadata.loadingStatus as string | undefined;
   const confidence = analysis?.confidence ?? 0;
+  const signalCount = (analysis?.perceptualSignals?.length ?? 0) + (analysis?.craftSignals?.length ?? 0);
 
   const borderClass = selected
     ? "border-[rgba(201,148,74,0.35)]"
@@ -54,13 +55,19 @@ export default function ImageNodeComponent({ data, selected }: ImageNodeProps) {
         <img src={imageUrl} alt="Canvas asset" className="w-full h-40 object-cover" draggable={false} />
       )}
 
-      {loadingStatus === "analyzing" && (
+      {loadingStatus === "analyzing" ? (
         <div className="px-3 py-2">
           <p className="text-[9px] tracking-[0.12em] uppercase font-medium text-sb-accent opacity-60 animate-pulse">
             Extracting signals…
           </p>
         </div>
-      )}
+      ) : signalCount > 0 ? (
+        <div className="px-3 py-1.5">
+          <p className="text-[9px] text-sb-accent opacity-50">
+            {signalCount} signal{signalCount !== 1 ? "s" : ""}
+          </p>
+        </div>
+      ) : null}
 
       <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-[rgba(201,148,74,0.4)] !border-[rgba(201,148,74,0.6)] opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
