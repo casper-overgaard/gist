@@ -50,7 +50,7 @@ function SessionContent() {
         <Canvas />
       </div>
       <div className="w-80 h-full border-l border-sb-border-subtle flex flex-col overflow-hidden shrink-0">
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+        <div className="shrink-0">
           <CardInspectorPanel />
         </div>
         <div className="h-px bg-sb-border-subtle shrink-0" />

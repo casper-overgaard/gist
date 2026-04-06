@@ -49,7 +49,7 @@ export default function OutputNodeComponent({ data, selected }: OutputNodeProps)
   if (!mergeOutput) return null;
 
   return (
-    <div className={`bg-[rgba(201,148,74,0.04)] border rounded w-[280px] relative group transition-colors ${borderClass}`}>
+    <div className={`bg-sb-surface-1 border rounded w-[280px] relative group transition-colors ${borderClass}`}>
       {/* Accent thread */}
       <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l" style={{ backgroundColor: "rgba(201,148,74,0.40)" }} />
 
@@ -79,62 +79,65 @@ export default function OutputNodeComponent({ data, selected }: OutputNodeProps)
           {mergeOutput.inferredIntent}
         </p>
 
-        {/* Spec URL */}
-        {fragmentUrl && (
-          <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 rounded bg-[rgba(201,148,74,0.05)] border border-[rgba(201,148,74,0.15)]">
-            <code className="text-[9px] font-mono text-sb-text-muted truncate flex-1 opacity-70">
-              {fragmentUrl}
-            </code>
-            <button
-              onClick={handleCopyFragment}
-              className="nodrag shrink-0 text-[9px] tracking-[0.06em] uppercase text-sb-accent opacity-60 hover:opacity-100 transition-opacity"
-            >
-              {copiedFragment ? "Copied" : "Copy"}
-            </button>
-          </div>
-        )}
-
-        {/* Tokens */}
-        {mergeOutput.tokens.length > 0 && (
-          <div className="mb-2.5">
-            <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-50 mb-1.5">Tokens</p>
-            <div className="space-y-1">
-              {mergeOutput.tokens.map((t, i) => (
-                <div key={i} className="flex items-baseline gap-2">
-                  <code className="text-[10px] text-sb-accent font-mono">{t.value}</code>
-                  <span className="text-[10px] text-sb-text-muted opacity-70 truncate">{t.use}</span>
-                </div>
-              ))}
+        {/* Scrollable content — spec URL, tokens, patterns, rules */}
+        <div className="max-h-[320px] overflow-y-auto mb-3">
+          {/* Spec URL */}
+          {fragmentUrl && (
+            <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 rounded bg-[rgba(201,148,74,0.05)] border border-[rgba(201,148,74,0.12)]">
+              <code className="text-[9px] font-mono text-sb-text-muted truncate flex-1 opacity-70">
+                {fragmentUrl}
+              </code>
+              <button
+                onClick={handleCopyFragment}
+                className="nodrag shrink-0 text-[9px] tracking-[0.06em] uppercase text-sb-accent opacity-60 hover:opacity-100 transition-opacity"
+              >
+                {copiedFragment ? "Copied" : "Copy"}
+              </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Class patterns */}
-        {mergeOutput.classPatterns.length > 0 && (
-          <div className="mb-2.5">
-            <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-50 mb-1.5">Patterns</p>
-            <div className="space-y-1.5">
-              {mergeOutput.classPatterns.map((p, i) => (
-                <div key={i}>
-                  <p className="text-[9px] text-sb-text-muted opacity-60 mb-0.5">{p.component}</p>
-                  <code className="text-[10px] text-sb-text-secondary font-mono leading-relaxed break-all">{p.classes}</code>
-                </div>
-              ))}
+          {/* Tokens */}
+          {mergeOutput.tokens.length > 0 && (
+            <div className="mb-2.5">
+              <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-50 mb-1.5">Tokens</p>
+              <div className="space-y-1">
+                {mergeOutput.tokens.map((t, i) => (
+                  <div key={i} className="flex items-baseline gap-2">
+                    <code className="text-[10px] text-sb-accent font-mono shrink-0">{t.value}</code>
+                    <span className="text-[10px] text-sb-text-muted opacity-70 truncate">{t.use}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Rules */}
-        {mergeOutput.rules.length > 0 && (
-          <div className="mb-3">
-            <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-50 mb-1.5">Rules</p>
-            <div className="space-y-1">
-              {mergeOutput.rules.map((r, i) => (
-                <p key={i} className="text-[10px] text-sb-text-muted leading-relaxed">— {r}</p>
-              ))}
+          {/* Class patterns */}
+          {mergeOutput.classPatterns.length > 0 && (
+            <div className="mb-2.5">
+              <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-50 mb-1.5">Patterns</p>
+              <div className="space-y-1.5">
+                {mergeOutput.classPatterns.map((p, i) => (
+                  <div key={i}>
+                    <p className="text-[9px] text-sb-text-muted opacity-60 mb-0.5">{p.component}</p>
+                    <code className="text-[10px] text-sb-text-secondary font-mono leading-relaxed break-all">{p.classes}</code>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Rules */}
+          {mergeOutput.rules.length > 0 && (
+            <div>
+              <p className="text-[9px] tracking-[0.14em] uppercase text-sb-accent opacity-50 mb-1.5">Rules</p>
+              <div className="space-y-1">
+                {mergeOutput.rules.map((r, i) => (
+                  <p key={i} className="text-[10px] text-sb-text-muted leading-relaxed">— {r}</p>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         <button
           onClick={handleAddToBrief}

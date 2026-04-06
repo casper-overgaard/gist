@@ -208,8 +208,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   removeAsset: async (assetId: string) => {
-    const { session } = get();
+    const { session, edges } = get();
     if (!session) return;
+    const connectedEdges = edges.filter((e) => e.source === assetId || e.target === assetId);
+    await Promise.all(
+      connectedEdges.map((e) => deleteDoc(doc(db, `sessions/${session.id}/edges`, e.id)))
+    );
     const assetRef = doc(db, `sessions/${session.id}/assets`, assetId);
     await deleteDoc(assetRef);
   },
