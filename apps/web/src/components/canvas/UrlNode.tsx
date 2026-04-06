@@ -1,8 +1,6 @@
-import { useState, useEffect, useRef } from "react";
 import { Asset } from "@signalboard/domain";
 import { Handle, Position } from "@xyflow/react";
 import { useSessionStore } from "@/store/useSessionStore";
-import PinButton from "./PinButton";
 
 interface UrlNodeProps {
   data: { asset: Asset };
@@ -11,10 +9,7 @@ interface UrlNodeProps {
 
 export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
   const { asset } = data;
-  const { removeAsset, updateAssetAnnotation } = useSessionStore();
-
-  const [annotationDraft, setAnnotationDraft] = useState<string>("");
-  const annotationSaved = useRef("");
+  const { removeAsset } = useSessionStore();
 
   const meta = asset.metadata?.urlMeta as {
     title?: string;
@@ -26,19 +21,6 @@ export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
   const analysis = asset.metadata?.analysis;
   const loadingStatus = asset.metadata?.loadingStatus as string | undefined;
   const confidence = analysis?.confidence ?? 0;
-  const pinnedSignals: string[] = asset.metadata?.pinnedSignals ?? [];
-  const savedAnnotation: string = asset.metadata?.annotation ?? "";
-
-  const perceptualSignals: string[] = analysis?.perceptualSignals ?? [];
-  const craftSignals: string[] = analysis?.craftSignals ?? [];
-  const hasSignals = perceptualSignals.length > 0 || craftSignals.length > 0;
-
-  useEffect(() => {
-    const val = asset.metadata?.annotation ?? "";
-    setAnnotationDraft(val);
-    annotationSaved.current = val;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asset.id]);
 
   const borderClass = selected
     ? "border-[rgba(201,148,74,0.35)]"
@@ -63,19 +45,9 @@ export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
 
       <Handle type="target" position={Position.Top} className="opacity-0" />
 
-      {meta?.imageUrl && (
-        <img
-          src={meta.imageUrl}
-          alt=""
-          className="w-full h-28 object-cover"
-          draggable={false}
-          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-        />
-      )}
-
       <div className="p-3">
         {/* Domain stamp */}
-        <p className="text-[9px] tracking-[0.16em] uppercase font-medium text-sb-accent opacity-60 mb-2">
+        <p className="text-[9px] tracking-[0.16em] uppercase font-medium text-sb-accent opacity-60 mb-1.5">
           {meta?.domain ?? asset.source ?? "URL"}
         </p>
 
@@ -88,54 +60,11 @@ export default function UrlNodeComponent({ data, selected }: UrlNodeProps) {
             {meta.title}
           </p>
         )}
-        {meta?.description && (
-          <p className="text-[11px] text-sb-text-secondary mt-1.5 leading-[1.55] line-clamp-2">
-            {meta.description}
-          </p>
-        )}
 
         {loadingStatus === "analyzing" && (
           <p className="mt-2 text-[9px] tracking-[0.12em] uppercase font-medium text-sb-accent opacity-60 animate-pulse">
             Extracting signals…
           </p>
-        )}
-
-        {/* Signals + annotation — rest=hidden, hover=read-only, active=editable */}
-        {(hasSignals || savedAnnotation || selected) && (
-          <div className={`border-t border-sb-border-subtle pt-2 mt-2 transition-opacity duration-150 ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
-            {perceptualSignals.map((s) => (
-              <div key={s} className="flex items-start gap-1.5 mb-1">
-                <span className="text-[11px] text-sb-text-muted leading-relaxed flex-1">{s}</span>
-                {selected && <PinButton assetId={asset.id} signal={s} pinnedSignals={pinnedSignals} />}
-              </div>
-            ))}
-            {craftSignals.map((s) => (
-              <div key={s} className="flex items-start gap-1.5 mb-0.5">
-                <span className="text-[9px] text-sb-text-muted opacity-60 leading-relaxed flex-1">{s}</span>
-                {selected && <PinButton assetId={asset.id} signal={s} pinnedSignals={pinnedSignals} />}
-              </div>
-            ))}
-            {selected ? (
-              <textarea
-                className="nodrag mt-2 w-full bg-sb-base border border-sb-border rounded px-2.5 py-2 text-[11px] text-sb-text-secondary leading-relaxed resize-none outline-none focus:border-[rgba(201,148,74,0.40)] placeholder-sb-text-muted transition-colors"
-                rows={2}
-                placeholder="What about this is relevant? What to ignore?"
-                value={annotationDraft}
-                onChange={(e) => setAnnotationDraft(e.target.value)}
-                onBlur={() => {
-                  if (annotationDraft !== annotationSaved.current) {
-                    annotationSaved.current = annotationDraft;
-                    updateAssetAnnotation(asset.id, annotationDraft);
-                  }
-                }}
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              savedAnnotation && (
-                <p className="mt-2 text-[11px] text-sb-text-muted italic leading-relaxed">&ldquo;{savedAnnotation}&rdquo;</p>
-              )
-            )}
-          </div>
         )}
       </div>
 

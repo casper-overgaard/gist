@@ -32,6 +32,7 @@ interface SessionState {
   isGeneratingOutput: boolean;
   isLoading: boolean;
   error: string | null;
+  selectedAssetId: string | null;
 
   initializeSession: (sessionId: string) => () => void;
   createSession: (title: string) => Promise<string>;
@@ -52,6 +53,7 @@ interface SessionState {
   writeOutput: (sessionId: string, output: OutputDocument) => Promise<void>;
   setIsSynthesizing: (v: boolean) => void;
   setIsGeneratingOutput: (v: boolean) => void;
+  setSelectedAssetId: (id: string | null) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -66,6 +68,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   isGeneratingOutput: false,
   isLoading: true,
   error: null,
+  selectedAssetId: null,
 
   initializeSession: (sessionId: string) => {
     set({ isLoading: true, error: null });
@@ -314,4 +317,5 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   setIsSynthesizing: (v: boolean) => set({ isSynthesizing: v }),
   setIsGeneratingOutput: (v: boolean) => set({ isGeneratingOutput: v }),
+  setSelectedAssetId: (id: string | null) => set({ selectedAssetId: id }),
 }));

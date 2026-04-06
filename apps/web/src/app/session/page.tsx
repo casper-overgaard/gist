@@ -4,6 +4,7 @@ import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSessionStore } from "@/store/useSessionStore";
 import Canvas from "@/components/canvas/Canvas";
+import CardInspectorPanel from "@/components/inspector/CardInspectorPanel";
 import ClarificationPanel from "@/components/clarification/ClarificationPanel";
 import OutputPanel from "@/components/output/OutputPanel";
 
@@ -49,6 +50,10 @@ function SessionContent() {
         <Canvas />
       </div>
       <div className="w-80 h-full border-l border-sb-border-subtle flex flex-col overflow-hidden shrink-0">
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+          <CardInspectorPanel />
+        </div>
+        <div className="h-px bg-sb-border-subtle shrink-0" />
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           <ClarificationPanel sessionId={id} />
         </div>

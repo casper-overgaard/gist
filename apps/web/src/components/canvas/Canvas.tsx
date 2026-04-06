@@ -44,7 +44,7 @@ function getSessionId() {
 }
 
 function CanvasInner() {
-  const { assets, edges: storedEdges, updateAssetPosition, addEdge: storeAddEdge, removeEdge: storeRemoveEdge, session } = useSessionStore();
+  const { assets, edges: storedEdges, updateAssetPosition, addEdge: storeAddEdge, removeEdge: storeRemoveEdge, session, setSelectedAssetId } = useSessionStore();
   const { screenToFlowPosition } = useReactFlow();
   const { triggerAnalysis } = useAssetAnalysis();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,9 +88,14 @@ function CanvasInner() {
           updateAssetPosition(change.id, change.position.x, change.position.y, !change.dragging);
         }
       });
-      setNodes((prev) => applyNodeChanges(changes, prev));
+      setNodes((prev) => {
+        const next = applyNodeChanges(changes, prev);
+        const selected = next.find((n) => n.selected);
+        setSelectedAssetId(selected?.id ?? null);
+        return next;
+      });
     },
-    [updateAssetPosition]
+    [updateAssetPosition, setSelectedAssetId]
   );
 
   const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
